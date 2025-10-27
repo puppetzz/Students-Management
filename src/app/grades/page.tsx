@@ -227,7 +227,8 @@ const Grades = () => {
   }, 300);
 
   return (
-    <div className="mt-10 max-h-screen flex-1 overflow-auto">
+    <>
+      <div className="mt-5 max-h-screen overflow-auto">
       <div className="mb-5 flex justify-center">
         <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
       </div>
@@ -277,6 +278,7 @@ const Grades = () => {
       </div>
       <MantineReactTable table={table} />
     </div>
+    </>
   );
 };
 
