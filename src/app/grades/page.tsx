@@ -6,10 +6,9 @@ import {
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { Button, Modal, Select, TextInput } from "@mantine/core";
-import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
-import { SideBars } from "../_components/sidebars";
-import type { TStudentResponse } from "~/types/students";
+import { Button, Select, TextInput } from "@mantine/core";
+import { useDebouncedCallback } from "@mantine/hooks";
+import type { TStudentWithGradesResponse } from "~/types/students";
 import { api } from "~/trpc/react";
 import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
 import useSearchParams from "~/hooks/useSearchParams";
@@ -22,10 +21,8 @@ const Grades = () => {
   const classId = searchParams.getParam("classId");
 
   // Fetch Data
-  const studentsQuery = api.student.getAll.useQuery(
+  const studentsQuery = api.student.getWithGrades.useQuery(
     {
-      page: 1,
-      pageSize: 1000,
       classId: classId ? Number(classId) : undefined,
       search: (search as string) ?? undefined,
     },
@@ -37,11 +34,16 @@ const Grades = () => {
     page: 1,
     pageSize: 1000,
   });
-  const classesQuery = api.classes.getAll.useQuery({
+  const classesQuery = api.classes.getAll.useQuery(
+    {
     page: 1,
     pageSize: 1000,
     termId: termId ? Number(termId) : undefined,
-  });
+    },
+    {
+      enabled: !!termId,
+    },
+  );
   const subjectsQuery = api.subject.getAll.useQuery(
     {
       page: 1,
@@ -83,7 +85,7 @@ const Grades = () => {
     );
   }, [classesQuery.data]);
 
-  const columns = useMemo<MRT_ColumnDef<TStudentResponse>[]>(
+  const columns = useMemo<MRT_ColumnDef<TStudentWithGradesResponse>[]>(
     () => [
       {
         accessorKey: "stt",
@@ -119,7 +121,7 @@ const Grades = () => {
                     </span>
                   );
                 },
-              }) as MRT_ColumnDef<TStudentResponse>,
+              }) as MRT_ColumnDef<TStudentWithGradesResponse>,
           )
         : []),
       {
@@ -196,7 +198,7 @@ const Grades = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: studentsQuery.data?.data ?? [],
+    data: (studentsQuery.data ?? []) as TStudentWithGradesResponse[],
     enablePagination: false,
     enableStickyHeader: true,
     mantineTableContainerProps: {

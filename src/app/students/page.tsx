@@ -6,13 +6,12 @@ import {
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { Button, Modal, Select, TextInput } from "@mantine/core";
+import { Button, Select, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
-import { SideBars } from "../_components/sidebars";
-import type { TStudentResponse } from "~/types/students";
+import type { TStudentInfoResponse } from "~/types/students";
 import { api } from "~/trpc/react";
-import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
 import useSearchParams from "~/hooks/useSearchParams";
+import dayjs from "dayjs";
 
 const Students = () => {
   const searchParams = useSearchParams();
@@ -88,11 +87,7 @@ const Students = () => {
     );
   }, [classesQuery.data]);
 
-  //    useEffect(()=>{
-  //     if (term)
-  //  }, [termsQuery.data])
-
-  const columns = useMemo<MRT_ColumnDef<TStudentResponse>[]>(
+  const columns = useMemo<MRT_ColumnDef<TStudentInfoResponse>[]>(
     () => [
       {
         accessorKey: "stt",
@@ -111,81 +106,29 @@ const Students = () => {
           );
         },
       },
-      ...(subjectsQuery.data
-        ? subjectsQuery.data.data.map(
-            (subject) =>
-              ({
-                accessorKey: `subject_${subject.id}`,
-                header: subject.name,
-                size: 80,
-                enableResizing: false,
-                Cell: ({ row }) => {
-                  return (
-                    <span>
-                      {row.original.examResults.find(
-                        (result) => result.subject.id === subject.id,
-                      )?.scored ?? 0}
-                    </span>
-                  );
-                },
-              }) as MRT_ColumnDef<TStudentResponse>,
-          )
-        : []),
       {
-        accessorKey: "avgScoredSubjects",
-        header: "DTB Môn Đã Có KQ",
-        Cell: ({ row }) => {
-          return <span>{row.original.avgScoredSubjects.toFixed(2)}</span>;
-        },
-      },
-      {
-        accessorKey: "avgOverall",
-        header: "DTB Toàn Khóa",
-        Cell: ({ row }) => {
-          return <span>{row.original.avgOverall.toFixed(2)}</span>;
-        },
-      },
-      {
-        accessorKey: "currentClassification",
-        header: "Xếp Loại Hiện Tại",
+        accessorKey: "dayOfBirth",
+        header: "Ngày Sinh",
         Cell: ({ row }) => {
           return (
-            <span>
-              {row.original.currentClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.currentClassification]
-                : "Chưa xếp loại"}
-            </span>
+            <span>{dayjs(row.original.dayOfBirth).format("DD/MM/YYYY")}</span>
           );
         },
       },
       {
-        accessorKey: "finalClassification",
-        header: "Xếp Loại Cuối Khóa",
-        Cell: ({ row }) => {
-          return (
-            <span>
-              {row.original.finalClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.finalClassification]
-                : "Chưa xếp loại"}
-            </span>
-          );
-        },
+        accessorKey: "vneid",
+        header: "CCCD",
       },
       {
-        accessorKey: "conduct",
-        header: "Rèn Luyện",
-        Cell: ({ row }) => {
-          return (
-            <span>
-              {row.original.conduct
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.conduct]
-                : "Chưa xếp loại"}
-            </span>
-          );
-        },
+        accessorKey: "hometown",
+        header: "Quê Quán",
+      },
+      {
+        accessorKey: "permanentAddress",
+        header: "Trú Quán",
       },
     ],
-    [subjectsQuery.data],
+    [],
   );
 
   const columnOrder = useMemo(() => {

@@ -1,7 +1,6 @@
-import { Prisma, EConduct } from "@prisma/client";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
+import { EConduct, type Prisma } from "@prisma/client";
 import { transformUpdateData } from "utils/transformUpdateData";
-import { any, z } from "zod";
+import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -50,8 +49,8 @@ export const studentRouter = createTRPCRouter({
   getAll: publicProcedure
     .input(
       z.object({
-        page: z.number().min(1).default(DEFAULT_PAGE),
-        pageSize: z.number().min(1).default(DEFAULT_PAGE_SIZE),
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).optional(),
         search: z.string().optional(),
         classId: z.number().optional(),
       }),
@@ -59,8 +58,8 @@ export const studentRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { page, pageSize, classId, search } = input;
 
-      const take = pageSize;
-      const skip = pageSize * (page - 1);
+      const take = pageSize ?? undefined;
+      const skip = pageSize && page ? pageSize * (page - 1) : undefined;
 
       const where: Prisma.StudentsWhereInput = {
         ...(classId ? { classId: classId } : {}),
@@ -85,24 +84,11 @@ export const studentRouter = createTRPCRouter({
             firstName: true,
             lastName: true,
             dayOfBirth: true,
-            avgOverall: true,
-            avgScoredSubjects: true,
-            conduct: true,
             createdAt: true,
             updatedAt: true,
-            examResults: {
-              select: {
-                scored: true,
-                createdAt: true,
-                updatedAt: true,
-                subject: {
-                  select: {
-                    name: true,
-                    id: true,
-                  },
-                },
-              },
-            },
+            hometown: true,
+            permanentAddress: true,
+            vneid: true,
           },
         }),
 
@@ -112,6 +98,63 @@ export const studentRouter = createTRPCRouter({
           },
         }),
       ]);
+
+      return {
+        data: students,
+        total: totalRecords.id,
+      };
+    }),
+
+  getWithGrades: publicProcedure
+    .input(
+      z.object({
+        classId: z.number().optional(),
+        search: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { classId, search } = input;
+
+      const where: Prisma.StudentsWhereInput = {
+        ...(classId ? { classId: classId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search } },
+                { lastName: { contains: search } },
+              ],
+            }
+          : {}),
+      };
+
+      const students = await ctx.db.students.findMany({
+        where,
+        orderBy: { firstName: "asc" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dayOfBirth: true,
+          avgOverall: true,
+          avgScoredSubjects: true,
+          conduct: true,
+          createdAt: true,
+          updatedAt: true,
+          examResults: {
+            select: {
+              scored: true,
+              createdAt: true,
+              updatedAt: true,
+              subject: {
+                select: {
+                  name: true,
+                  id: true,
+                },
+              },
+            },
+          },
+        },
+      });
 
       const processedStudentsData = students.map((student) => {
         const haveAnyScores = student.examResults.length > 0;
@@ -133,10 +176,7 @@ export const studentRouter = createTRPCRouter({
         };
       });
 
-      return {
-        data: processedStudentsData,
-        total: totalRecords.id,
-      };
+      return processedStudentsData;
     }),
 
   getById: publicProcedure
@@ -187,6 +227,9 @@ export const studentRouter = createTRPCRouter({
         lastName: z.string(),
         dayOfBirth: z.date(),
         classId: z.number(),
+        hometown: z.string().optional(),
+        permanentAddress: z.string().optional(),
+        vneid: z.string(),
         conduct: z
           .enum(Object.values(EConduct) as [string, ...string[]])
           .optional(),

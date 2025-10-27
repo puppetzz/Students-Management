@@ -3,23 +3,24 @@ import type { TSubjectForClass } from "../subjects";
 
 export type TStudent = {
   id: number;
-  fullName: string;
-  dayOfBirth: string;
-  pointAvg: number;
-};
-
-export type TStudentResponse = {
-  id: number;
   firstName: string;
   lastName: string;
   dayOfBirth: Date;
-  avgScoredSubjects: number;
-  avgOverall: number;
-  conduct: EConduct | null;
   createdAt: Date;
   updatedAt: Date;
-  examResults: TExampleResultClassRelation[];
+  vneid: string;
+};
 
+export type TStudentInfoResponse = TStudent & {
+  hometown: string | null;
+  permanentAddress: string | null;
+};
+
+export type TStudentWithGradesResponse = TStudent & {
+  conduct: EConduct | null;
+  avgScoredSubjects: number;
+  avgOverall: number;
+  examResults: TExampleResultClassRelation[];
   currentClassification: EConduct | null;
   finalClassification: EConduct | null;
 };
