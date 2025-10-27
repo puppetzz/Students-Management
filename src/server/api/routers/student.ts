@@ -67,8 +67,8 @@ export const studentRouter = createTRPCRouter({
         ...(search
           ? {
               OR: [
-                { firstName: { contains: search } },
-                { lastName: { contains: search } },
+                { firstName: { contains: search, mode: "insensitive" } },
+                { lastName: { contains: search, mode: "insensitive" } },
               ],
             }
           : {}),

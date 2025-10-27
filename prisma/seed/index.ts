@@ -3,297 +3,246 @@ import { PrismaClient, EConduct } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Bắt đầu seeding database...");
+  // Clear existing data in reverse order of dependencies
+  await prisma.examResults.deleteMany();
+  await prisma.classSubjects.deleteMany();
+  await prisma.students.deleteMany();
+  await prisma.classes.deleteMany();
+  await prisma.subjects.deleteMany();
+  await prisma.terms.deleteMany();
 
-  // Tạo học kỳ
+  // Create Terms
   const terms = await prisma.terms.createMany({
     data: [
       {
-        name: "Học kỳ I",
-        schoolYear: "2023-2024",
-      },
-      {
-        name: "Học kỳ II",
-        schoolYear: "2023-2024",
-      },
-      {
-        name: "Học kỳ I",
+        name: "Học kỳ 1",
         schoolYear: "2024-2025",
+      },
+      {
+        name: "Học kỳ 2",
+        schoolYear: "2024-2025",
+      },
+      {
+        name: "Học kỳ 1",
+        schoolYear: "2023-2024",
       },
     ],
   });
-  console.log("✅ Đã tạo học kỳ");
 
-  // Lấy học kỳ đã tạo
-  const termList = await prisma.terms.findMany();
+  const createdTerms = await prisma.terms.findMany();
 
-  // Tạo lớp học
+  // Create Subjects
+  const subjects = await prisma.subjects.createMany({
+    data: [
+      { name: "Toán", description: "Môn Toán học" },
+      { name: "Văn", description: "Môn Ngữ văn" },
+      { name: "Anh", description: "Môn Tiếng Anh" },
+      { name: "Lý", description: "Môn Vật lý" },
+      { name: "Hóa", description: "Môn Hóa học" },
+      { name: "Sinh", description: "Môn Sinh học" },
+      { name: "Sử", description: "Môn Lịch sử" },
+      { name: "Địa", description: "Môn Địa lý" },
+      { name: "GDCD", description: "Môn Giáo dục công dân" },
+    ],
+  });
+
+  const createdSubjects = await prisma.subjects.findMany();
+
+  // Create Classes
   const classes = await prisma.classes.createMany({
     data: [
       {
-        name: "10A1",
-        description: "Lớp 10 chuyên Toán",
-        termId: termList[0].id,
+        name: "12A1",
+        description: "Lớp 12A1 - Khối A",
+        termId: createdTerms[0].id,
       },
       {
-        name: "10A2",
-        description: "Lớp 10 chuyên Lý",
-        termId: termList[0].id,
+        name: "12A2",
+        description: "Lớp 12A2 - Khối A",
+        termId: createdTerms[0].id,
       },
       {
-        name: "11B1",
-        description: "Lớp 11 chuyên Hóa",
-        termId: termList[1].id,
+        name: "12B1",
+        description: "Lớp 12B1 - Khối B",
+        termId: createdTerms[0].id,
       },
       {
-        name: "12C1",
-        description: "Lớp 12 chuyên Văn",
-        termId: termList[2].id,
+        name: "11A1",
+        description: "Lớp 11A1 - Khối A",
+        termId: createdTerms[1].id,
       },
     ],
   });
-  console.log("✅ Đã tạo lớp học");
 
-  // Lấy lớp học đã tạo
-  const classList = await prisma.classes.findMany();
+  const createdClasses = await prisma.classes.findMany();
 
-  // Tạo môn học
-  const subjects = await prisma.subjects.createMany({
-    data: [
-      {
-        name: "Toán học",
-        description: "Môn Toán học cơ bản và nâng cao",
-      },
-      {
-        name: "Vật lý",
-        description: "Môn Vật lý từ cơ bản đến nâng cao",
-      },
-      {
-        name: "Hóa học",
-        description: "Môn Hóa học và thực hành",
-      },
-      {
-        name: "Ngữ văn",
-        description: "Môn Ngữ văn và văn học Việt Nam",
-      },
-      {
-        name: "Tiếng Anh",
-        description: "Môn Tiếng Anh giao tiếp và học thuật",
-      },
-      {
-        name: "Lịch sử",
-        description: "Môn Lịch sử Việt Nam và thế giới",
-      },
-      {
-        name: "Địa lý",
-        description: "Môn Địa lý tự nhiên và kinh tế",
-      },
-      {
-        name: "Sinh học",
-        description: "Môn Sinh học từ cơ bản đến nâng cao",
-      },
-    ],
-  });
-  console.log("✅ Đã tạo môn học");
+  // Create ClassSubjects relationships
+  const classSubjectsData = [];
+  for (const classItem of createdClasses) {
+    // Each class has different subjects based on their focus
+    if (classItem.name.includes("A")) {
+      // Class A focuses on Math, Physics, Chemistry
+      const subjectIds = createdSubjects
+        .filter((s) => ["Toán", "Lý", "Hóa", "Văn", "Anh"].includes(s.name))
+        .map((s) => s.id);
 
-  // Lấy môn học đã tạo
-  const subjectList = await prisma.subjects.findMany();
+      for (const subjectId of subjectIds) {
+        classSubjectsData.push({
+          classId: classItem.id,
+          subjectId: subjectId,
+        });
+      }
+    } else {
+      // Class B focuses on Biology, Chemistry, Math
+      const subjectIds = createdSubjects
+        .filter((s) => ["Toán", "Sinh", "Hóa", "Văn", "Anh"].includes(s.name))
+        .map((s) => s.id);
 
-  // Tạo quan hệ lớp-môn học
-  const classSubjects = [];
-  for (const classItem of classList) {
-    // Mỗi lớp có 6-8 môn học
-    const subjectsForClass = subjectList.slice(
-      0,
-      Math.floor(Math.random() * 3) + 6,
-    );
-    for (const subject of subjectsForClass) {
-      classSubjects.push({
-        class_id: classItem.id,
-        subject_id: subject.id,
-      });
+      for (const subjectId of subjectIds) {
+        classSubjectsData.push({
+          classId: classItem.id,
+          subjectId: subjectId,
+        });
+      }
     }
   }
 
   await prisma.classSubjects.createMany({
-    data: classSubjects,
+    data: classSubjectsData,
   });
-  console.log("✅ Đã tạo quan hệ lớp-môn học");
 
-  // Tạo học sinh
-  const vietnameseFirstNames = [
-    "Nguyễn",
-    "Trần",
-    "Lê",
-    "Phạm",
-    "Hoàng",
-    "Huỳnh",
-    "Phan",
-    "Vũ",
-    "Võ",
-    "Đặng",
-    "Bùi",
-    "Đỗ",
-    "Hồ",
-    "Ngô",
-    "Dương",
-    "Lý",
-    "Mai",
-    "Đinh",
-    "Tô",
-    "Lưu",
+  // Create Students
+  const studentsData = [
+    {
+      firstName: "Nguyễn Văn",
+      lastName: "An",
+      dayOfBirth: new Date("2006-01-15"),
+      hometown: "Hà Nội",
+      permanentAddress: "123 Đường ABC, Hà Nội",
+      vneid: "036206001234",
+      conduct: EConduct.EXCELLENT,
+      classId: createdClasses[0].id,
+    },
+    {
+      firstName: "Trần Thị",
+      lastName: "Bình",
+      dayOfBirth: new Date("2006-03-20"),
+      hometown: "Hồ Chí Minh",
+      permanentAddress: "456 Đường XYZ, TP.HCM",
+      vneid: "079206005678",
+      conduct: EConduct.GOOD,
+      classId: createdClasses[0].id,
+    },
+    {
+      firstName: "Lê Văn",
+      lastName: "Cường",
+      dayOfBirth: new Date("2006-05-10"),
+      hometown: "Đà Nẵng",
+      permanentAddress: "789 Đường DEF, Đà Nẵng",
+      vneid: "043206009876",
+      conduct: EConduct.GOOD,
+      classId: createdClasses[1].id,
+    },
+    {
+      firstName: "Phạm Thị",
+      lastName: "Dung",
+      dayOfBirth: new Date("2006-07-25"),
+      hometown: "Hải Phòng",
+      permanentAddress: "321 Đường GHI, Hải Phòng",
+      vneid: "031206004321",
+      conduct: EConduct.AVERAGE,
+      classId: createdClasses[1].id,
+    },
+    {
+      firstName: "Hoàng Văn",
+      lastName: "Em",
+      dayOfBirth: new Date("2006-09-12"),
+      hometown: "Cần Thơ",
+      permanentAddress: "654 Đường JKL, Cần Thơ",
+      vneid: "092206007890",
+      conduct: EConduct.EXCELLENT,
+      classId: createdClasses[2].id,
+    },
+    {
+      firstName: "Vũ Thị",
+      lastName: "Giang",
+      dayOfBirth: new Date("2007-02-08"),
+      hometown: "Hà Nội",
+      permanentAddress: "987 Đường MNO, Hà Nội",
+      vneid: "036207001122",
+      conduct: EConduct.GOOD,
+      classId: createdClasses[3].id,
+    },
   ];
 
-  const vietnameseLastNames = [
-    "Văn Minh",
-    "Thị Lan",
-    "Minh Tâm",
-    "Hoàng Long",
-    "Thị Hoa",
-    "Văn Đức",
-    "Thị Mai",
-    "Minh Khoa",
-    "Văn Hùng",
-    "Thị Linh",
-    "Minh Tuấn",
-    "Thị Thu",
-    "Văn Nam",
-    "Thị Nga",
-    "Minh Anh",
-    "Thị Phương",
-    "Văn Quân",
-    "Thị Hương",
-    "Minh Đức",
-    "Thị Thảo",
-    "Văn Kiên",
-    "Thị Nhung",
-    "Minh Hải",
-    "Thị Vy",
-    "Văn Tài",
-    "Thị Xuân",
-    "Minh Hoàng",
-    "Thị Yến",
-    "Văn Bình",
-    "Thị Loan",
-  ];
-
-  const vietnameseHometowns = [
-    "Hà Nội",
-    "Hồ Chí Minh",
-    "Đà Nẵng",
-    "Hải Phòng",
-    "Cần Thơ",
-    "An Giang",
-    "Bà Rịa - Vũng Tàu",
-    "Bạc Liêu",
-    "Bắc Giang",
-    "Bắc Kạn",
-    "Bắc Ninh",
-    "Bến Tre",
-    "Bình Định",
-    "Bình Dương",
-    "Bình Phước",
-    "Bình Thuận",
-    "Cà Mau",
-    "Cao Bằng",
-    "Đắk Lắk",
-    "Đắk Nông",
-    "Điện Biên",
-    "Đồng Nai",
-    "Đồng Tháp",
-    "Gia Lai",
-    "Hà Giang",
-    "Hà Nam",
-    "Hà Tĩnh",
-    "Hải Dương",
-    "Hậu Giang",
-    "Hòa Bình",
-    "Hưng Yên",
-    "Khánh Hòa",
-    "Kiên Giang",
-  ];
-
-  const students = [];
-  const conducts = Object.values(EConduct);
-
-  for (let i = 0; i < 120; i++) {
-    const firstName =
-      vietnameseFirstNames[
-        Math.floor(Math.random() * vietnameseFirstNames.length)
-      ];
-    const lastName =
-      vietnameseLastNames[
-        Math.floor(Math.random() * vietnameseLastNames.length)
-      ];
-    const hometown =
-      vietnameseHometowns[
-        Math.floor(Math.random() * vietnameseHometowns.length)
-      ];
-    const conduct = conducts[Math.floor(Math.random() * conducts.length)];
-    const classId = classList[Math.floor(Math.random() * classList.length)].id;
-
-    // Tạo ngày sinh từ 2005-2008
-    const year = 2005 + Math.floor(Math.random() * 4);
-    const month = Math.floor(Math.random() * 12) + 1;
-    const day = Math.floor(Math.random() * 28) + 1;
-    const dayOfBirth = new Date(year, month - 1, day);
-
-    students.push({
-      firstName,
-      lastName,
-      dayOfBirth,
-      hometown,
-      conduct,
-      classId,
-      avgScoredSubjects: Math.round((Math.random() * 3 + 7) * 10) / 10, // 7.0 - 10.0
-      avgOverall: Math.round((Math.random() * 3 + 7) * 10) / 10, // 7.0 - 10.0
-    });
-  }
-
-  await prisma.students.createMany({
-    data: students,
+  const students = await prisma.students.createMany({
+    data: studentsData,
   });
-  console.log("✅ Đã tạo học sinh");
 
-  // Lấy học sinh đã tạo
-  const studentList = await prisma.students.findMany();
+  const createdStudents = await prisma.students.findMany();
 
-  // Tạo kết quả thi cho học sinh
-  const examResults = [];
-  for (const student of studentList) {
-    // Lấy các môn học của lớp của học sinh
-    const studentClassSubjects = await prisma.classSubjects.findMany({
-      where: { class_id: student.classId },
-      include: { subject: true },
-    });
+  // Create ExamResults
+  const examResultsData = [];
+  const classSubjects = await prisma.classSubjects.findMany({
+    include: {
+      class: {
+        include: {
+          students: true,
+        },
+      },
+      subject: true,
+    },
+  });
 
-    for (const classSubject of studentClassSubjects) {
-      // Mỗi học sinh có điểm cho mỗi môn trong lớp
-      examResults.push({
+  // Generate random scores for each student in subjects they study
+  for (const classSubject of classSubjects) {
+    for (const student of classSubject.class.students) {
+      const score = Math.round((Math.random() * 4 + 6) * 10) / 10; // Random score between 6.0 and 10.0
+      examResultsData.push({
         student_id: student.id,
-        subject_id: classSubject.subject_id,
-        scored: Math.round((Math.random() * 3 + 7) * 10) / 10, // Điểm từ 7.0 đến 10.0
+        subject_id: classSubject.subjectId,
+        scored: score,
       });
     }
   }
 
   await prisma.examResults.createMany({
-    data: examResults,
+    data: examResultsData,
   });
-  console.log("✅ Đã tạo kết quả thi");
 
-  console.log("🎉 Hoàn thành seeding database!");
-  console.log(`📊 Thống kê:`);
-  console.log(`   - ${termList.length} học kỳ`);
-  console.log(`   - ${classList.length} lớp học`);
-  console.log(`   - ${subjectList.length} môn học`);
-  console.log(`   - ${studentList.length} học sinh`);
-  console.log(`   - ${examResults.length} kết quả thi`);
+  // Update student averages
+  for (const student of createdStudents) {
+    const studentResults = await prisma.examResults.findMany({
+      where: { student_id: student.id },
+    });
+
+    if (studentResults.length > 0) {
+      const avgScoredSubjects =
+        studentResults.reduce((sum, result) => sum + result.scored, 0) /
+        studentResults.length;
+      const avgOverall = avgScoredSubjects; // In this case, they're the same
+
+      await prisma.students.update({
+        where: { id: student.id },
+        data: {
+          avgScoredSubjects: Math.round(avgScoredSubjects * 100) / 100,
+          avgOverall: Math.round(avgOverall * 100) / 100,
+        },
+      });
+    }
+  }
+
+  console.log("Seed data created successfully!");
+  console.log(`Created ${createdTerms.length} terms`);
+  console.log(`Created ${createdSubjects.length} subjects`);
+  console.log(`Created ${createdClasses.length} classes`);
+  console.log(`Created ${createdStudents.length} students`);
+  console.log(`Created ${examResultsData.length} exam results`);
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Lỗi khi seeding:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

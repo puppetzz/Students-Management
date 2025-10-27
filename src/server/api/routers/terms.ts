@@ -20,6 +20,7 @@ export const termRouter = createTRPCRouter({
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),

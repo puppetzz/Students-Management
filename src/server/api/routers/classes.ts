@@ -21,6 +21,7 @@ export const classesRouter = createTRPCRouter({
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),

@@ -25,6 +25,7 @@ export const subjectRouter = createTRPCRouter({
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),

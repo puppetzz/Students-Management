@@ -1,18 +1,18 @@
 import {
   Kysely,
   DummyDriver,
-  SqliteAdapter,
-  SqliteIntrospector,
-  SqliteQueryCompiler,
+  PostgresAdapter,
+  PostgresIntrospector,
+  PostgresQueryCompiler,
 } from "kysely";
 
 import type { DB } from "./types";
 
 export const kyselyDB = new Kysely<DB>({
   dialect: {
-    createAdapter: () => new SqliteAdapter(),
+    createAdapter: () => new PostgresAdapter(),
     createDriver: () => new DummyDriver(),
-    createIntrospector: (db) => new SqliteIntrospector(db),
-    createQueryCompiler: () => new SqliteQueryCompiler(),
+    createIntrospector: (db) => new PostgresIntrospector(db),
+    createQueryCompiler: () => new PostgresQueryCompiler(),
   },
 });
