@@ -55,17 +55,19 @@ const Grades = () => {
     },
   );
 
+  // Set termId first if missing
   useEffect(() => {
-    const updateSearchParamsData: Record<string, string> = {};
-    if (!termId && termsQuery.data?.data[0]?.id)
-      updateSearchParamsData.termId = termsQuery.data.data[0].id.toString();
+    if (!termId && termsQuery.data?.data[0]?.id) {
+      searchParams.setParam("termId", termsQuery.data.data[0].id.toString());
+    }
+  }, [termsQuery.data, termId, searchParams]);
 
-    if (!classId && classesQuery.data?.data[0]?.id)
-      updateSearchParamsData.classId = classesQuery.data.data[0].id.toString();
-
-    if (Object.keys(updateSearchParamsData).length > 0)
-      searchParams.setParams(updateSearchParamsData);
-  }, [termsQuery.data, classesQuery.data]);
+  // Set classId only after termId is set and classes are loaded for that term
+  useEffect(() => {
+    if (termId && !classId && classesQuery.data?.data[0]?.id) {
+      searchParams.setParam("classId", classesQuery.data.data[0].id.toString());
+    }
+  }, [classesQuery.data, termId, classId, searchParams]);
 
   // Data
   const termsSelectData = useMemo(() => {
