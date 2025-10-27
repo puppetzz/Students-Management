@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+generator kysely {
+    provider     = "prisma-kysely"
+    output       = "../src/server/kysely"
+    fileName     = "types.ts"
+    enumFileName = "enums.ts"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model Students {
+    id                Int       @id @default(autoincrement())
+    firstName         String    @map("first_name")
+    lastName          String    @map("last_name")
+    dayOfBirth        DateTime  @map("day_of_birth")
+    hometown          String?
+    permanentAddress  String?
+    vneid             String    @unique
+    avgScoredSubjects Float     @default(0) @map("avg_scored_subjects")
+    avgOverall        Float     @default(0) @map("avg_overall")
+    conduct           EConduct?
+    createdAt         DateTime  @default(now()) @map("created_at")
+    updatedAt         DateTime  @default(now()) @map("updated_at")
+    classId           Int       @map("class_id")
+
+    class Classes @relation(fields: [classId], references: [id])
+
+    examResults ExamResults[]
+
+    @@map("students")
+}
+
+model Classes {
+    id          Int      @id @default(autoincrement())
+    name        String
+    description String?
+    termId      Int      @map("term_id")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @default(now()) @map("updated_at")
+
+    classSubjects ClassSubjects[]
+    term          Terms           @relation(fields: [termId], references: [id])
+    students      Students[]
+
+    @@map("classes")
+}
+
+model Terms {
+    id         Int      @id @default(autoincrement())
+    name       String
+    schoolYear String
+    createdAt  DateTime @default(now()) @map("created_at")
+    updatedAt  DateTime @default(now()) @map("updated_at")
+
+    classes Classes[]
+
+    @@map("terms")
+}
+
+model Subjects {
+    id          Int      @id @default(autoincrement())
+    name        String
+    description String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @default(now()) @map("updated_at")
+
+    classSubjects ClassSubjects[]
+    examResults   ExamResults[]
+
+    @@map("subjects")
+}
+
+model ExamResults {
+    student_id Int
+    subject_id Int
+    scored     Float
+    createdAt  DateTime @default(now()) @map("created_at")
+    updatedAt  DateTime @default(now()) @map("updated_at")
+
+    student Students @relation(fields: [student_id], references: [id])
+    subject Subjects @relation(fields: [subject_id], references: [id])
+
+    @@id([student_id, subject_id])
+    @@map("exam_results")
+}
+
+model ClassSubjects {
+    classId   Int @map("class_id")
+    subjectId Int @map("subject_id")
+
+    class   Classes  @relation(fields: [classId], references: [id])
+    subject Subjects @relation(fields: [subjectId], references: [id])
+
+    @@id([classId, subjectId])
+    @@map("class_subjects")
+}
+
+enum EConduct {
+    POOR
+    AVERAGE
+    GOOD
+    EXCELLENT
+}

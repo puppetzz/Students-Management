@@ -1,0 +1,40 @@
+services:
+  postgresql:
+    image: postgres:17.6
+    container_name: qlhv_postgres
+    environment:
+      POSTGRES_DB: qlhv_db
+      POSTGRES_USER: qlhv_user
+      POSTGRES_PASSWORD: NNhnr6OizkQM
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # - ./init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - qlhv_network
+
+  # app:
+  #   build: .
+  #   container_name: qlhv_app
+  #   environment:
+  #     DATABASE_HOST: postgresql
+  #     DATABASE_PORT: 5432
+  #     DATABASE_NAME: qlhv_db
+  #     DATABASE_USER: qlhv_user
+  #     DATABASE_PASSWORD: NNhnr6OizkQM
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - postgresql
+  #   restart: unless-stopped
+  #   networks:
+  #     - qlhv_network
+
+volumes:
+  postgres_data:
+
+networks:
+  qlhv_network:
+    driver: bridge
