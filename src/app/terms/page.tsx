@@ -10,7 +10,6 @@ import { Button, Modal, Pagination, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SideBars } from "../_components/sidebars";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -173,8 +172,7 @@ const Terms = () => {
   );
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
+    <>
       <div className="mt-10 flex-1">
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Môn Học</h1>
@@ -279,7 +277,7 @@ const Terms = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 

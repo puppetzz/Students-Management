@@ -240,8 +240,7 @@ const Classes = () => {
   }, [termQuery.data?.data]);
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
+    <>
       <div className="mt-10 flex-1">
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Quản Lý Lớp</h1>
@@ -412,7 +411,7 @@ const Classes = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 

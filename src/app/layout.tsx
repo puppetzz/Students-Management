@@ -11,6 +11,7 @@ import { ToastContainer } from "react-toastify";
 import "@mantine/core/styles.css"; //import Mantine V7 styles needed by MRT
 import "@mantine/dates/styles.css"; //if using mantine date picker features
 import "mantine-react-table/styles.css"; //import MRT styles
+import { SideBars } from "./_components/sidebars";
 
 const theme = createTheme({});
 
@@ -33,7 +34,10 @@ export default function RootLayout({
       <body>
         <MantineProvider theme={theme}>
           <TRPCReactProvider>
-            {children}
+            <div className="flex h-screen">
+              <SideBars />
+              {children}
+            </div>
             <ToastContainer />
           </TRPCReactProvider>
         </MantineProvider>

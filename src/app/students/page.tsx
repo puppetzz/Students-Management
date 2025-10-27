@@ -181,8 +181,7 @@ const Students = () => {
   };
 
   return (
-    <div className="flex h-screen gap-1">
-      <SideBars />
+    <>
       <div className="mt-10 max-h-screen flex-1 overflow-auto">
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
@@ -240,7 +239,7 @@ const Students = () => {
         </div>
         <MantineReactTable table={table} />
       </div>
-    </div>
+    </>
   );
 };
 

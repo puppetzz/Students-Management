@@ -180,8 +180,7 @@ const Subjects = () => {
   );
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
+    <>
       <div className="mt-10 flex-1">
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Môn Học</h1>
@@ -286,7 +285,7 @@ const Subjects = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 
