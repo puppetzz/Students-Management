@@ -89,6 +89,12 @@ export const studentRouter = createTRPCRouter({
             hometown: true,
             permanentAddress: true,
             vneid: true,
+            classId: true,
+            class: {
+              select: {
+                termId: true,
+              },
+            },
           },
         }),
 
@@ -153,6 +159,11 @@ export const studentRouter = createTRPCRouter({
               },
             },
           },
+          class: {
+            select: {
+              termId: true,
+            },
+          },
         },
       });
 
@@ -214,6 +225,11 @@ export const studentRouter = createTRPCRouter({
               },
             },
           },
+          class: {
+            select: {
+              termId: true,
+            },
+          },
         },
       });
 
@@ -259,7 +275,7 @@ export const studentRouter = createTRPCRouter({
       });
     }),
 
-  update: publicProcedure
+  updateInfo: publicProcedure
     .input(
       z.object({
         id: z.number(),
@@ -269,10 +285,13 @@ export const studentRouter = createTRPCRouter({
           .date()
           .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
           .optional(),
-        conduct: z
-          .enum(Object.values(EConduct) as [string, ...string[]])
-          .optional(),
         classId: z.number().optional(),
+        hometown: z.string().min(1, "Quê quán không được để trống").optional(),
+        permanentAddress: z.string().optional(),
+        vneid: z
+          .string()
+          .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số")
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -282,15 +301,7 @@ export const studentRouter = createTRPCRouter({
         where: {
           id,
         },
-        data: {
-          ...(data.firstName !== undefined && { firstName: data.firstName }),
-          ...(data.lastName !== undefined && { lastName: data.lastName }),
-          ...(data.dayOfBirth !== undefined && { dayOfBirth: data.dayOfBirth }),
-          ...(data.conduct !== undefined && {
-            conduct: data.conduct as EConduct,
-          }),
-          ...(data.classId !== undefined && { classId: data.classId }),
-        },
+        data,
       });
     }),
 });

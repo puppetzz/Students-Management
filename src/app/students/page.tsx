@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MantineReactTable,
   useMantineReactTable,
@@ -8,13 +8,17 @@ import {
 } from "mantine-react-table";
 import { Button, Select, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
-import type { TStudentInfoResponse } from "~/types/students";
+import type { TStudentInfoResponse, TUpdateStudent } from "~/types/students";
 import { api } from "~/trpc/react";
 import useSearchParams from "~/hooks/useSearchParams";
 import dayjs from "dayjs";
-import { CreateStudentModal } from "../_components/students";
+import { CreateStudentModal, ViewAndEditModal } from "../_components/students";
 
 const Students = () => {
+  const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(
+    null,
+  );
+
   const searchParams = useSearchParams();
 
   const search = searchParams.getParam("search");
@@ -24,6 +28,10 @@ const Students = () => {
   const [
     openedCreateModal,
     { open: openCreateModal, close: closeCreateModal },
+  ] = useDisclosure(false);
+  const [
+    openedViewAndEditModal,
+    { open: openViewAndEditModal, close: closeViewAndEditModal },
   ] = useDisclosure(false);
 
   // Fetch Data
@@ -174,6 +182,15 @@ const Students = () => {
       columnOrder: columnOrder,
     },
     enableColumnOrdering: false,
+    mantineTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        setSelectedStudent({
+          ...row.original,
+          termId: row.original.class.termId,
+        });
+        openViewAndEditModal();
+      },
+    }),
   });
   const debouncedSearch = useDebouncedCallback((value: string) => {
     searchParams.setParam("search", value);
@@ -190,20 +207,24 @@ const Students = () => {
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
-          <div className="flex justify-end gap-2 py-2">
-            <Button
-              color="blue"
-              variant="filled"
-              onClick={handleOpenCreateModal}
-            >
-              Thêm Học Viên
-            </Button>
-            <Button color="green" variant="outline">
-              Nhập Từ Excel
-            </Button>
-            <Button color="orange" variant="outline">
-              Xuất Ra Excel
-            </Button>
+          <div className="flex justify-between gap-2 py-2">
+            <div className="flex gap-2">
+              <Button
+                color="blue"
+                variant="filled"
+                onClick={handleOpenCreateModal}
+              >
+                Thêm Học Viên
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button color="green" variant="outline">
+                Nhập Từ Excel
+              </Button>
+              <Button color="orange" variant="outline">
+                Xuất Ra Excel
+              </Button>
+            </div>
           </div>
           <div className="border-t border-[#dee2e6]"></div>
           <div className="flex justify-between py-1">
@@ -237,7 +258,6 @@ const Students = () => {
                 }}
               />
             </div>
-            <div></div>
           </div>
         </div>
         <MantineReactTable table={table} />
@@ -245,6 +265,11 @@ const Students = () => {
       <CreateStudentModal
         opened={openedCreateModal}
         onClose={closeCreateModal}
+      />
+      <ViewAndEditModal
+        opened={openedViewAndEditModal}
+        onClose={closeViewAndEditModal}
+        data={selectedStudent}
       />
     </>
   );
