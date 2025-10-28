@@ -12,6 +12,7 @@ import type { TStudentInfoResponse } from "~/types/students";
 import { api } from "~/trpc/react";
 import useSearchParams from "~/hooks/useSearchParams";
 import dayjs from "dayjs";
+import { CreateStudentModal } from "../_components/students";
 
 const Students = () => {
   const searchParams = useSearchParams();
@@ -241,6 +242,10 @@ const Students = () => {
         </div>
         <MantineReactTable table={table} />
       </div>
+      <CreateStudentModal
+        opened={openedCreateModal}
+        onClose={closeCreateModal}
+      />
     </>
   );
 };

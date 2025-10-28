@@ -1,5 +1,5 @@
 import { EConduct, type Prisma } from "@prisma/client";
-import { transformUpdateData } from "utils/transformUpdateData";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
@@ -225,7 +225,9 @@ export const studentRouter = createTRPCRouter({
       z.object({
         firstName: z.string(),
         lastName: z.string(),
-        dayOfBirth: z.date(),
+        dayOfBirth: z
+          .date()
+          .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại"),
         classId: z.number(),
         hometown: z.string().optional(),
         permanentAddress: z.string().optional(),
@@ -236,6 +238,19 @@ export const studentRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const classExists = await ctx.db.classes.findFirst({
+        where: {
+          id: input.classId,
+        },
+      });
+
+      if (!classExists) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Lớp không tồn tại",
+        });
+      }
+
       return ctx.db.students.create({
         data: {
           ...input,
@@ -250,22 +265,32 @@ export const studentRouter = createTRPCRouter({
         id: z.number(),
         firstName: z.string().optional(),
         lastName: z.string().optional(),
-        dayOfBirth: z.date().optional(),
+        dayOfBirth: z
+          .date()
+          .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
+          .optional(),
         conduct: z
           .enum(Object.values(EConduct) as [string, ...string[]])
           .optional(),
+        classId: z.number().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
 
-      const transformsData = transformUpdateData(data);
-
-      return ctx.db.subjects.update({
+      return ctx.db.students.update({
         where: {
           id,
         },
-        data: transformsData,
+        data: {
+          ...(data.firstName !== undefined && { firstName: data.firstName }),
+          ...(data.lastName !== undefined && { lastName: data.lastName }),
+          ...(data.dayOfBirth !== undefined && { dayOfBirth: data.dayOfBirth }),
+          ...(data.conduct !== undefined && {
+            conduct: data.conduct as EConduct,
+          }),
+          ...(data.classId !== undefined && { classId: data.classId }),
+        },
       });
     }),
 });

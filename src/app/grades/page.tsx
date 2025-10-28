@@ -231,55 +231,55 @@ const Grades = () => {
   return (
     <>
       <div className="mt-5 max-h-screen overflow-auto">
-      <div className="mb-5 flex justify-center">
-        <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
-      </div>
-      <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
-        <div className="flex justify-end gap-2 py-2">
-          <Button color="green" variant="outline">
-            Nhập Từ Excel
-          </Button>
-          <Button color="orange" variant="outline">
-            Xuất Ra Excel
-          </Button>
+        <div className="mb-5 flex justify-center">
+          <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
         </div>
-        <div className="border-t border-[#dee2e6]"></div>
-        <div className="flex justify-between py-1">
-          <div className="flex gap-2">
-            <Select
-              label="Khóa"
-              className="w-30"
-              data={termsSelectData}
-              value={termId ? termId.toString() : null}
-              onChange={(value) => {
-                searchParams.setParams({
-                  termId: value ?? undefined,
-                  classId: undefined,
-                });
-              }}
-            />
-            <Select
-              label="Lớp"
-              className="w-30"
-              data={classesSelectData}
-              value={classId ? classId.toString() : null}
-              onChange={(value) => {
-                searchParams.setParam("classId", value);
-              }}
-            />
-            <TextInput
-              label="Tìm Kiếm"
-              className="w-50"
-              onChange={(e) => {
-                debouncedSearch(e.target.value);
-              }}
-            />
+        <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
+          <div className="flex justify-end gap-2 py-2">
+            <Button color="green" variant="outline">
+              Nhập Từ Excel
+            </Button>
+            <Button color="orange" variant="outline">
+              Xuất Ra Excel
+            </Button>
           </div>
-          <div></div>
+          <div className="border-t border-[#dee2e6]"></div>
+          <div className="flex justify-between py-1">
+            <div className="flex gap-2">
+              <Select
+                label="Khóa"
+                className="w-30"
+                data={termsSelectData}
+                value={termId ? termId.toString() : null}
+                onChange={(value) => {
+                  searchParams.setParams({
+                    termId: value ?? undefined,
+                    classId: undefined,
+                  });
+                }}
+              />
+              <Select
+                label="Lớp"
+                className="w-30"
+                data={classesSelectData}
+                value={classId ? classId.toString() : null}
+                onChange={(value) => {
+                  searchParams.setParam("classId", value);
+                }}
+              />
+              <TextInput
+                label="Tìm Kiếm"
+                className="w-50"
+                onChange={(e) => {
+                  debouncedSearch(e.target.value);
+                }}
+              />
+            </div>
+            <div></div>
+          </div>
         </div>
+        <MantineReactTable table={table} />
       </div>
-      <MantineReactTable table={table} />
-    </div>
     </>
   );
 };

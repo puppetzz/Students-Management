@@ -1,5 +1,7 @@
 import type { EConduct } from "@prisma/client";
 import type { TSubjectForClass } from "../subjects";
+import type * as z from "zod";
+import type { createStudentSchema } from "common/schema/student";
 
 export type TStudent = {
   id: number;
@@ -31,3 +33,5 @@ export type TExampleResultClassRelation = {
   scored: number;
   subject: TSubjectForClass;
 };
+
+export type TCreateStudent = z.infer<typeof createStudentSchema>;
