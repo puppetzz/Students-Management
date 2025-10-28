@@ -36,6 +36,9 @@ model Students {
 
     examResults ExamResults[]
 
+    @@index([classId])
+    @@index([firstName, lastName])
+    @@index([createdAt])
     @@map("students")
 }
 
@@ -51,6 +54,8 @@ model Classes {
     term          Terms           @relation(fields: [termId], references: [id])
     students      Students[]
 
+    @@index([termId])
+    @@index([name])
     @@map("classes")
 }
 
@@ -63,11 +68,14 @@ model Terms {
 
     classes Classes[]
 
+    @@index([schoolYear])
+    @@index([name])
     @@map("terms")
 }
 
 model Subjects {
     id          Int      @id @default(autoincrement())
+    code        String   @unique
     name        String
     description String?
     createdAt   DateTime @default(now()) @map("created_at")
@@ -76,6 +84,8 @@ model Subjects {
     classSubjects ClassSubjects[]
     examResults   ExamResults[]
 
+    @@index([name])
+    @@index([code])
     @@map("subjects")
 }
 
@@ -90,6 +100,9 @@ model ExamResults {
     subject Subjects @relation(fields: [subject_id], references: [id])
 
     @@id([student_id, subject_id])
+    @@index([student_id])
+    @@index([subject_id])
+    @@index([scored])
     @@map("exam_results")
 }
 
@@ -101,6 +114,8 @@ model ClassSubjects {
     subject Subjects @relation(fields: [subjectId], references: [id])
 
     @@id([classId, subjectId])
+    @@index([classId])
+    @@index([subjectId])
     @@map("class_subjects")
 }
 

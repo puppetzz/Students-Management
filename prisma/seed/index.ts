@@ -3,7 +3,7 @@ import { PrismaClient, EConduct } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clear existing data in reverse order of dependencies
+  // Clear existing data (optional - remove if you want to keep existing data)
   await prisma.examResults.deleteMany();
   await prisma.classSubjects.deleteMany();
   await prisma.students.deleteMany();
@@ -11,233 +11,321 @@ async function main() {
   await prisma.subjects.deleteMany();
   await prisma.terms.deleteMany();
 
-  // Create Terms
-  const terms = await prisma.terms.createMany({
-    data: [
-      {
-        name: "Học kỳ 1",
-        schoolYear: "2024-2025",
-      },
-      {
-        name: "Học kỳ 2",
-        schoolYear: "2024-2025",
-      },
-      {
-        name: "Học kỳ 1",
-        schoolYear: "2023-2024",
-      },
-    ],
+  // Create Terms (Khóa học)
+  const k71 = await prisma.terms.create({
+    data: {
+      name: "K71",
+      schoolYear: "2024",
+    },
   });
 
-  const createdTerms = await prisma.terms.findMany();
-
-  // Create Subjects
-  const subjects = await prisma.subjects.createMany({
-    data: [
-      { name: "Toán", description: "Môn Toán học" },
-      { name: "Văn", description: "Môn Ngữ văn" },
-      { name: "Anh", description: "Môn Tiếng Anh" },
-      { name: "Lý", description: "Môn Vật lý" },
-      { name: "Hóa", description: "Môn Hóa học" },
-      { name: "Sinh", description: "Môn Sinh học" },
-      { name: "Sử", description: "Môn Lịch sử" },
-      { name: "Địa", description: "Môn Địa lý" },
-      { name: "GDCD", description: "Môn Giáo dục công dân" },
-    ],
+  const k72 = await prisma.terms.create({
+    data: {
+      name: "K72",
+      schoolYear: "2025",
+    },
   });
 
-  const createdSubjects = await prisma.subjects.findMany();
-
-  // Create Classes
-  const classes = await prisma.classes.createMany({
-    data: [
-      {
-        name: "12A1",
-        description: "Lớp 12A1 - Khối A",
-        termId: createdTerms[0].id,
-      },
-      {
-        name: "12A2",
-        description: "Lớp 12A2 - Khối A",
-        termId: createdTerms[0].id,
-      },
-      {
-        name: "12B1",
-        description: "Lớp 12B1 - Khối B",
-        termId: createdTerms[0].id,
-      },
-      {
-        name: "11A1",
-        description: "Lớp 11A1 - Khối A",
-        termId: createdTerms[1].id,
-      },
-    ],
+  const k73 = await prisma.terms.create({
+    data: {
+      name: "K73",
+      schoolYear: "2026",
+    },
   });
 
-  const createdClasses = await prisma.classes.findMany();
+  // Create Subjects with codes
+  const subjects = await Promise.all([
+    prisma.subjects.create({
+      data: {
+        code: "TLAK",
+        name: "Tiểu Liên AK",
+        description: "Môn học về tiểu liên AK",
+      },
+    }),
+    prisma.subjects.create({
+      data: {
+        code: "STCB",
+        name: "Súng trường CKC",
+        description: "Môn học về súng trường CKC",
+      },
+    }),
+    prisma.subjects.create({
+      data: {
+        code: "CTQS",
+        name: "Chính trị quân sự",
+        description: "Môn học chính trị quân sự",
+      },
+    }),
+    prisma.subjects.create({
+      data: {
+        code: "KTQS",
+        name: "Kỹ thuật quân sự",
+        description: "Môn học kỹ thuật quân sự",
+      },
+    }),
+    prisma.subjects.create({
+      data: {
+        code: "TDQS",
+        name: "Thể dục quân sự",
+        description: "Môn học thể dục quân sự",
+      },
+    }),
+    prisma.subjects.create({
+      data: {
+        code: "PLQS",
+        name: "Pháp luật quân sự",
+        description: "Môn học pháp luật quân sự",
+      },
+    }),
+  ]);
+
+  // Create Classes for different courses
+  const classes = await Promise.all([
+    // Classes for K71
+    prisma.classes.create({
+      data: {
+        name: "K71A1",
+        description: "Lớp A1 khóa 71",
+        termId: k71.id,
+      },
+    }),
+    prisma.classes.create({
+      data: {
+        name: "K71B1",
+        description: "Lớp B1 khóa 71",
+        termId: k71.id,
+      },
+    }),
+    // Classes for K72
+    prisma.classes.create({
+      data: {
+        name: "K72A1",
+        description: "Lớp A1 khóa 72",
+        termId: k72.id,
+      },
+    }),
+    prisma.classes.create({
+      data: {
+        name: "K72A2",
+        description: "Lớp A2 khóa 72",
+        termId: k72.id,
+      },
+    }),
+    prisma.classes.create({
+      data: {
+        name: "K72B1",
+        description: "Lớp B1 khóa 72",
+        termId: k72.id,
+      },
+    }),
+    // Classes for K73
+    prisma.classes.create({
+      data: {
+        name: "K73A1",
+        description: "Lớp A1 khóa 73",
+        termId: k73.id,
+      },
+    }),
+  ]);
 
   // Create ClassSubjects relationships
-  const classSubjectsData = [];
-  for (const classItem of createdClasses) {
-    // Each class has different subjects based on their focus
-    if (classItem.name.includes("A")) {
-      // Class A focuses on Math, Physics, Chemistry
-      const subjectIds = createdSubjects
-        .filter((s) => ["Toán", "Lý", "Hóa", "Văn", "Anh"].includes(s.name))
-        .map((s) => s.id);
-
-      for (const subjectId of subjectIds) {
-        classSubjectsData.push({
-          classId: classItem.id,
-          subjectId: subjectId,
-        });
-      }
-    } else {
-      // Class B focuses on Biology, Chemistry, Math
-      const subjectIds = createdSubjects
-        .filter((s) => ["Toán", "Sinh", "Hóa", "Văn", "Anh"].includes(s.name))
-        .map((s) => s.id);
-
-      for (const subjectId of subjectIds) {
-        classSubjectsData.push({
-          classId: classItem.id,
-          subjectId: subjectId,
-        });
-      }
+  for (const cls of classes) {
+    for (const subject of subjects) {
+      await prisma.classSubjects.create({
+        data: {
+          classId: cls.id,
+          subjectId: subject.id,
+        },
+      });
     }
   }
 
-  await prisma.classSubjects.createMany({
-    data: classSubjectsData,
-  });
-
-  // Create Students
-  const studentsData = [
-    {
-      firstName: "Nguyễn Văn",
-      lastName: "An",
-      dayOfBirth: new Date("2006-01-15"),
-      hometown: "Hà Nội",
-      permanentAddress: "123 Đường ABC, Hà Nội",
-      vneid: "036206001234",
-      conduct: EConduct.EXCELLENT,
-      classId: createdClasses[0].id,
-    },
-    {
-      firstName: "Trần Thị",
-      lastName: "Bình",
-      dayOfBirth: new Date("2006-03-20"),
-      hometown: "Hồ Chí Minh",
-      permanentAddress: "456 Đường XYZ, TP.HCM",
-      vneid: "079206005678",
-      conduct: EConduct.GOOD,
-      classId: createdClasses[0].id,
-    },
-    {
-      firstName: "Lê Văn",
-      lastName: "Cường",
-      dayOfBirth: new Date("2006-05-10"),
-      hometown: "Đà Nẵng",
-      permanentAddress: "789 Đường DEF, Đà Nẵng",
-      vneid: "043206009876",
-      conduct: EConduct.GOOD,
-      classId: createdClasses[1].id,
-    },
-    {
-      firstName: "Phạm Thị",
-      lastName: "Dung",
-      dayOfBirth: new Date("2006-07-25"),
-      hometown: "Hải Phòng",
-      permanentAddress: "321 Đường GHI, Hải Phòng",
-      vneid: "031206004321",
-      conduct: EConduct.AVERAGE,
-      classId: createdClasses[1].id,
-    },
-    {
-      firstName: "Hoàng Văn",
-      lastName: "Em",
-      dayOfBirth: new Date("2006-09-12"),
-      hometown: "Cần Thơ",
-      permanentAddress: "654 Đường JKL, Cần Thơ",
-      vneid: "092206007890",
-      conduct: EConduct.EXCELLENT,
-      classId: createdClasses[2].id,
-    },
-    {
-      firstName: "Vũ Thị",
-      lastName: "Giang",
-      dayOfBirth: new Date("2007-02-08"),
-      hometown: "Hà Nội",
-      permanentAddress: "987 Đường MNO, Hà Nội",
-      vneid: "036207001122",
-      conduct: EConduct.GOOD,
-      classId: createdClasses[3].id,
-    },
+  // Student data arrays
+  const firstNames = [
+    "Nguyễn Văn",
+    "Trần Văn",
+    "Lê Thị",
+    "Phạm Văn",
+    "Hoàng Thị",
+    "Vũ Văn",
+    "Phan Thị",
+    "Đỗ Văn",
+    "Bùi Thị",
+    "Đặng Văn",
+    "Ngô Thị",
+    "Dương Văn",
+    "Lý Thị",
+    "Mai Văn",
+    "Cao Thị",
+    "Tô Văn",
+    "Chu Thị",
+    "Lưu Văn",
+    "Hà Thị",
+    "Đinh Văn",
   ];
 
-  const students = await prisma.students.createMany({
-    data: studentsData,
-  });
+  const lastNames = [
+    "An",
+    "Bình",
+    "Cúc",
+    "Dũng",
+    "Hoa",
+    "Em",
+    "Giang",
+    "Hùng",
+    "Linh",
+    "Nam",
+    "Oanh",
+    "Phong",
+    "Quyên",
+    "Sơn",
+    "Tú",
+    "Uyên",
+    "Vinh",
+    "Xuân",
+    "Yến",
+    "Đức",
+    "Minh",
+    "Thành",
+    "Hạnh",
+    "Kiên",
+    "Lan",
+    "Mạnh",
+    "Nga",
+    "Phúc",
+    "Quang",
+    "Hải",
+  ];
 
-  const createdStudents = await prisma.students.findMany();
+  const hometowns = [
+    "Hà Nội",
+    "Hồ Chí Minh",
+    "Đà Nẵng",
+    "Hải Phòng",
+    "Cần Thơ",
+    "Nghệ An",
+    "Thanh Hóa",
+    "Nam Định",
+    "Thái Bình",
+    "Hưng Yên",
+    "Bắc Ninh",
+    "Quảng Ninh",
+    "Lạng Sơn",
+    "Cao Bằng",
+    "Hà Giang",
+    "Lào Cai",
+    "Sơn La",
+    "Điện Biên",
+    "Lai Châu",
+    "Yên Bái",
+  ];
+
+  const conducts = [
+    EConduct.POOR,
+    EConduct.AVERAGE,
+    EConduct.GOOD,
+    EConduct.EXCELLENT,
+  ];
+
+  // Create Students for each class
+  const allStudents = [];
+
+  for (let classIndex = 0; classIndex < classes.length; classIndex++) {
+    const classObj = classes[classIndex];
+    const studentsPerClass = classIndex < 2 ? 8 : 10; // K71 classes have 8 students, others have 10
+
+    for (let i = 0; i < studentsPerClass; i++) {
+      const firstName =
+        firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const hometown = hometowns[Math.floor(Math.random() * hometowns.length)];
+      const conduct = conducts[Math.floor(Math.random() * conducts.length)];
+
+      // Generate birth year based on course
+      let birthYear = 2001; // Default for K71
+      if (classObj.name.startsWith("K72")) birthYear = 2002;
+      if (classObj.name.startsWith("K73")) birthYear = 2003;
+
+      const birthMonth = Math.floor(Math.random() * 12) + 1;
+      const birthDay = Math.floor(Math.random() * 28) + 1;
+
+      // Generate unique VNEID
+      const vneid = `00${birthYear}${String(birthMonth).padStart(2, "0")}${String(classIndex).padStart(2, "0")}${String(i).padStart(3, "0")}`;
+
+      const student = await prisma.students.create({
+        data: {
+          firstName,
+          lastName,
+          dayOfBirth: new Date(birthYear, birthMonth - 1, birthDay),
+          hometown,
+          permanentAddress: `${Math.floor(Math.random() * 999) + 1} Đường ${lastName}, ${hometown}`,
+          vneid,
+          conduct,
+          classId: classObj.id,
+        },
+      });
+
+      allStudents.push(student);
+    }
+  }
 
   // Create ExamResults
-  const examResultsData = [];
-  const classSubjects = await prisma.classSubjects.findMany({
-    include: {
-      class: {
-        include: {
-          students: true,
-        },
-      },
-      subject: true,
-    },
-  });
+  const examResults = [];
+  for (const student of allStudents) {
+    for (const subject of subjects) {
+      // Generate realistic scores based on conduct
+      let baseScore = 7;
+      if (student.conduct === EConduct.EXCELLENT) baseScore = 9;
+      else if (student.conduct === EConduct.GOOD) baseScore = 8;
+      else if (student.conduct === EConduct.AVERAGE) baseScore = 7;
+      else baseScore = 6; // POOR
 
-  // Generate random scores for each student in subjects they study
-  for (const classSubject of classSubjects) {
-    for (const student of classSubject.class.students) {
-      const score = Math.round((Math.random() * 4 + 6) * 10) / 10; // Random score between 6.0 and 10.0
-      examResultsData.push({
+      // Add some randomness
+      const variation = (Math.random() - 0.5) * 2; // -1 to +1
+      const score = Math.max(5, Math.min(10, baseScore + variation));
+
+      examResults.push({
         student_id: student.id,
-        subject_id: classSubject.subjectId,
-        scored: score,
+        subject_id: subject.id,
+        scored: Math.round(score * 10) / 10, // Round to 1 decimal place
       });
     }
   }
 
   await prisma.examResults.createMany({
-    data: examResultsData,
+    data: examResults,
   });
 
   // Update student averages
-  for (const student of createdStudents) {
-    const studentResults = await prisma.examResults.findMany({
+  for (const student of allStudents) {
+    const results = await prisma.examResults.findMany({
       where: { student_id: student.id },
     });
 
-    if (studentResults.length > 0) {
-      const avgScoredSubjects =
-        studentResults.reduce((sum, result) => sum + result.scored, 0) /
-        studentResults.length;
-      const avgOverall = avgScoredSubjects; // In this case, they're the same
+    const avgScoredSubjects =
+      results.reduce((sum, result) => sum + result.scored, 0) / results.length;
 
-      await prisma.students.update({
-        where: { id: student.id },
-        data: {
-          avgScoredSubjects: Math.round(avgScoredSubjects * 100) / 100,
-          avgOverall: Math.round(avgOverall * 100) / 100,
-        },
-      });
-    }
+    await prisma.students.update({
+      where: { id: student.id },
+      data: {
+        avgScoredSubjects: Math.round(avgScoredSubjects * 10) / 10,
+        avgOverall: Math.round(avgScoredSubjects * 10) / 10,
+      },
+    });
   }
 
   console.log("Seed data created successfully!");
-  console.log(`Created ${createdTerms.length} terms`);
-  console.log(`Created ${createdSubjects.length} subjects`);
-  console.log(`Created ${createdClasses.length} classes`);
-  console.log(`Created ${createdStudents.length} students`);
-  console.log(`Created ${examResultsData.length} exam results`);
+  console.log(`Created ${subjects.length} subjects`);
+  console.log(`Created ${classes.length} classes`);
+  console.log(`Created ${allStudents.length} students`);
+  console.log("Distribution:");
+
+  for (const cls of classes) {
+    const studentCount = allStudents.filter((s) => s.classId === cls.id).length;
+    console.log(`  ${cls.name}: ${studentCount} students`);
+  }
+
+  console.log("Terms: K71 (2024), K72 (2025), K73 (2026)");
 }
 
 main()
