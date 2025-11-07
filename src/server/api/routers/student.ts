@@ -1,48 +1,31 @@
 import { EConduct, type Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import {
+  CONDUCT_CLASSIFICATION_MAPPINGS,
+  EGradeClassification,
+} from "common/constants/students";
+import { sql } from "kysely";
+import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-
-const CLASSIFICATION_THRESHOLDS = {
-  EXCELLENT: 9,
-  GOOD: 7,
-  AVERAGE: 5,
-} as const;
-
-const getScoreClassification = (avgScore: number | null): EConduct | null => {
-  if (avgScore === null) return null;
-  if (avgScore >= CLASSIFICATION_THRESHOLDS.EXCELLENT)
-    return EConduct.EXCELLENT;
-  if (avgScore >= CLASSIFICATION_THRESHOLDS.GOOD) return EConduct.GOOD;
-  if (avgScore >= CLASSIFICATION_THRESHOLDS.AVERAGE) return EConduct.AVERAGE;
-  return EConduct.POOR;
-};
+import { kyselyDB } from "~/server/kysely/db";
 
 const getFinalClassification = (
-  scoreClassification: EConduct | null,
+  scoreClassification: EGradeClassification | null,
   conduct: EConduct | null,
-): EConduct | null | undefined => {
-  // If both are null, return null
-  if (scoreClassification === null && conduct === null) return null;
+): EGradeClassification | null => {
+  if (conduct === null || scoreClassification === null) return null;
 
-  // If one is null, return the other
-  if (scoreClassification === null) return conduct;
-  if (conduct === null) return scoreClassification;
+  // Poor conduct always results in failure
+  if (conduct === EConduct.POOR) return EGradeClassification.FAILED;
 
-  // Define the hierarchy (lower index = better classification)
-  const hierarchy = [
-    EConduct.EXCELLENT,
-    EConduct.GOOD,
-    EConduct.AVERAGE,
-    EConduct.POOR,
-  ];
+  // Excellent conduct maintains the score classification
+  if (conduct === EConduct.EXCELLENT) return scoreClassification;
 
-  const scoreIndex = hierarchy.indexOf(scoreClassification);
-  const conductIndex = hierarchy.indexOf(conduct);
-
-  // Return the worse classification (higher index)
-  return hierarchy[Math.max(scoreIndex, conductIndex)];
+  return (
+    CONDUCT_CLASSIFICATION_MAPPINGS[conduct]?.[scoreClassification] ?? null
+  );
 };
 
 export const studentRouter = createTRPCRouter({
@@ -174,11 +157,12 @@ export const studentRouter = createTRPCRouter({
           ? null
           : getScoreClassification(student.avgScoredSubjects);
 
-        const finalClassification =
-          getFinalClassification(
-            getScoreClassification(student.avgOverall),
-            student.conduct,
-          ) ?? null;
+        const finalClassification = student.avgOverall
+          ? getFinalClassification(
+              getScoreClassification(student.avgOverall),
+              student.conduct,
+            )
+          : null;
 
         return {
           ...student,
@@ -303,5 +287,203 @@ export const studentRouter = createTRPCRouter({
         },
         data,
       });
+    }),
+
+  updateGrades: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        grades: z.array(
+          z.object({
+            subjectId: z.number(),
+            scored: z.number(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, grades } = input;
+
+      const updatedGradeSubjects = grades.map((grade) => grade.subjectId);
+
+      const examResultsNotUpdated = await ctx.db.examResults.findMany({
+        where: {
+          studentId: id,
+          subjectId: {
+            notIn: updatedGradeSubjects,
+          },
+        },
+      });
+
+      const sumOfScoresWhichNotUpdated = examResultsNotUpdated.reduce(
+        (acc, curr) => acc + curr.scored,
+        0,
+      );
+      const sumOfNewScores = grades.reduce((acc, curr) => acc + curr.scored, 0);
+
+      const numberOfSubjects = examResultsNotUpdated.length + grades.length;
+
+      const currentAvg =
+        (sumOfScoresWhichNotUpdated + sumOfNewScores) / numberOfSubjects;
+
+      await Promise.all([
+        ctx.db.examResults.deleteMany({
+          where: {
+            subjectId: {
+              in: updatedGradeSubjects,
+            },
+            studentId: id,
+          },
+        }),
+        ctx.db.examResults.createMany({
+          data: grades.map((grade) => ({
+            studentId: id,
+            subjectId: grade.subjectId,
+            scored: grade.scored,
+          })),
+        }),
+        ctx.db.students.update({
+          where: {
+            id,
+          },
+          data: {
+            avgScoredSubjects: currentAvg,
+          },
+        }),
+      ]);
+
+      return;
+    }),
+
+  batchUpdateGrades: publicProcedure
+    .input(
+      z.array(
+        z.object({
+          studentId: z.number(),
+          grades: z.array(
+            z.object({
+              subjectId: z.number(),
+              scored: z.number(),
+            }),
+          ),
+        }),
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updateExampleResults: Record<number, Array<number>> = {};
+      const updatedData: Array<{
+        studentId: number;
+        subjectId: number;
+        scored: number;
+      }> = [];
+      const updatedStudentIds: Array<number> = [];
+
+      for (const studentUpdate of input) {
+        const { studentId, grades } = studentUpdate;
+
+        const subjectIdsToUpdate = grades.map((grade) => grade.subjectId);
+        updateExampleResults[studentId] = subjectIdsToUpdate;
+
+        for (const grade of grades) {
+          updatedData.push({
+            studentId,
+            subjectId: grade.subjectId,
+            scored: grade.scored,
+          });
+        }
+
+        updatedStudentIds.push(studentId);
+      }
+
+      const updatedDataMap = new Map(
+        updatedData.map((data) => [
+          `${data.studentId}-${data.subjectId}`,
+          data.scored,
+        ]),
+      );
+
+      const examResults = await ctx.db.examResults.findMany({
+        where: {
+          studentId: {
+            in: updatedStudentIds,
+          },
+        },
+      });
+
+      const updatedTotalScores = examResults?.reduce(
+        (acc, curr) => {
+          const studentId = curr.studentId;
+
+          if (!(studentId in acc)) {
+            acc[studentId] = { total: 0, count: 0 };
+          }
+
+          const isUpdatedScore =
+            updateExampleResults[studentId]?.includes(curr.subjectId) ?? false;
+
+          if (isUpdatedScore) {
+            const updatedScore = updatedDataMap.get(
+              `${studentId}-${curr.subjectId}`,
+            );
+            if (updatedScore !== undefined) {
+              acc[studentId]!.total += updatedScore;
+              acc[studentId]!.count += 1;
+            }
+            return acc;
+          }
+
+          acc[studentId]!.total += curr.scored;
+          acc[studentId]!.count += 1;
+
+          return acc;
+        },
+        {} as Record<number, { total: number; count: number }>,
+      );
+
+      const avgScoresToUpdate = Object.entries(updatedTotalScores).map(
+        ([studentIdStr, studentData]) => {
+          const { total, count } = studentData;
+          return {
+            id: Number(studentIdStr),
+            avgScoredSubjects: count > 0 ? total / count : 0,
+          };
+        },
+      );
+
+      let caseExpression = kyselyDB.case().when("id", "=", -1).then(0);
+      for (const student of avgScoresToUpdate) {
+        caseExpression = caseExpression
+          .when("id", "=", student.id)
+          .then(student.avgScoredSubjects);
+      }
+
+      const updateAvgsQuery = kyselyDB
+        .updateTable("students")
+        .set({
+          avg_scored_subjects: sql<number>`${caseExpression.end()}`,
+          updated_at: sql`CURRENT_TIMESTAMP`,
+        })
+        .where("id", "in", updatedStudentIds)
+        .compile();
+
+      await Promise.all([
+        ctx.db.examResults.deleteMany({
+          where: {
+            OR: input.map((studentUpdate) => ({
+              studentId: studentUpdate.studentId,
+              subjectId: {
+                in: updateExampleResults[studentUpdate.studentId],
+              },
+            })),
+          },
+        }),
+        ctx.db.examResults.createMany({
+          data: updatedData,
+        }),
+        ctx.db.$executeRawUnsafe(
+          updateAvgsQuery.sql,
+          ...updateAvgsQuery.parameters,
+        ),
+      ]);
     }),
 });

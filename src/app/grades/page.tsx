@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MantineReactTable,
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
 import { Button, Select, TextInput } from "@mantine/core";
-import { useDebouncedCallback } from "@mantine/hooks";
+import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
 import type { TStudentWithGradesResponse } from "~/types/students";
 import { api } from "~/trpc/react";
-import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
+import {
+  CONDUCT_LANGUAGE_MAPPING,
+  GRADE_CLASSIFICATIONS,
+} from "common/constants/students";
 import useSearchParams from "~/hooks/useSearchParams";
+import { ViewAndEditGrades } from "../_components/grades/ViewAndEditGrades";
+import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesModal";
 
 const Grades = () => {
   const searchParams = useSearchParams();
@@ -19,6 +24,19 @@ const Grades = () => {
   const search = searchParams.getParam("search");
   const termId = searchParams.getParam("termId");
   const classId = searchParams.getParam("classId");
+
+  const [selectedStudent, setSelectedStudent] =
+    useState<TStudentWithGradesResponse | null>(null);
+
+  const [
+    openedViewAndEditModal,
+    { open: openViewAndEditModal, close: closeViewAndEditModal },
+  ] = useDisclosure(false);
+
+  const [
+    openedBatchUpdateModal,
+    { open: openBatchUpdateModal, close: closeBatchUpdateModal },
+  ] = useDisclosure(false);
 
   // Fetch Data
   const studentsQuery = api.student.getWithGrades.useQuery(
@@ -147,7 +165,7 @@ const Grades = () => {
           return (
             <span>
               {row.original.currentClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.currentClassification]
+                ? GRADE_CLASSIFICATIONS[row.original.currentClassification]
                 : "Chưa xếp loại"}
             </span>
           );
@@ -160,7 +178,7 @@ const Grades = () => {
           return (
             <span>
               {row.original.finalClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.finalClassification]
+                ? GRADE_CLASSIFICATIONS[row.original.finalClassification]
                 : "Chưa xếp loại"}
             </span>
           );
@@ -223,10 +241,26 @@ const Grades = () => {
       columnOrder: columnOrder,
     },
     enableColumnOrdering: false,
+    mantineTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        setSelectedStudent({
+          ...row.original,
+        });
+        openViewAndEditModal();
+      },
+    }),
   });
   const debouncedSearch = useDebouncedCallback((value: string) => {
     searchParams.setParam("search", value);
   }, 300);
+
+  const classData = useMemo(() => {
+    return classesQuery.data?.data.find((cls) => cls.id === Number(classId));
+  }, [classesQuery.data, classId]);
+
+  const termData = useMemo(() => {
+    return termsQuery.data?.data.find((term) => term.id === Number(termId));
+  }, [termsQuery.data, termId]);
 
   return (
     <>
@@ -236,6 +270,9 @@ const Grades = () => {
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
           <div className="flex justify-end gap-2 py-2">
+            <Button color="blue" onClick={openBatchUpdateModal}>
+              Cập Nhật Điểm
+            </Button>
             <Button color="green" variant="outline">
               Nhập Từ Excel
             </Button>
@@ -280,6 +317,32 @@ const Grades = () => {
         </div>
         <MantineReactTable table={table} />
       </div>
+
+      <ViewAndEditGrades
+        opened={openedViewAndEditModal}
+        onClose={closeViewAndEditModal}
+        student={
+          selectedStudent
+            ? {
+                ...selectedStudent,
+                className: classData?.name ?? "N/A",
+                termName: termData?.name ?? "N/A",
+              }
+            : null
+        }
+      />
+
+      <BatchUpdateGradesModal
+        opened={openedBatchUpdateModal}
+        onClose={closeBatchUpdateModal}
+        classData={{
+          id: classId ? Number(classId) : 0,
+          termId: termId ? Number(termId) : 0,
+          students: (studentsQuery?.data ?? []) as TStudentWithGradesResponse[],
+          name: classData?.name ?? "N/A",
+          termName: termData?.name ?? "N/A",
+        }}
+      />
     </>
   );
 };

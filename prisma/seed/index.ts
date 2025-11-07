@@ -285,8 +285,8 @@ async function main() {
       const score = Math.max(5, Math.min(10, baseScore + variation));
 
       examResults.push({
-        student_id: student.id,
-        subject_id: subject.id,
+        studentId: student.id,
+        subjectId: subject.id,
         scored: Math.round(score * 10) / 10, // Round to 1 decimal place
       });
     }
@@ -299,7 +299,7 @@ async function main() {
   // Update student averages
   for (const student of allStudents) {
     const results = await prisma.examResults.findMany({
-      where: { student_id: student.id },
+      where: { studentId: student.id },
     });
 
     const avgScoredSubjects =

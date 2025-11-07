@@ -2,10 +2,13 @@ import type { EConduct } from "@prisma/client";
 import type { TSubjectForClass } from "../subjects";
 import type * as z from "zod";
 import type {
+  batchUpdateGradesSchema,
   createStudentSchema,
+  updateGradesSchema,
   updateStudentSchema,
 } from "common/schema/student";
 import type { TClassesWithStudentsRelation } from "../classes";
+import type { EGradeClassification } from "common/constants/students";
 
 export type TStudent = {
   id: number;
@@ -29,8 +32,8 @@ export type TStudentWithGradesResponse = TStudent & {
   avgScoredSubjects: number;
   avgOverall: number;
   examResults: TExampleResultClassRelation[];
-  currentClassification: EConduct | null;
-  finalClassification: EConduct | null;
+  currentClassification: EGradeClassification | null;
+  finalClassification: EGradeClassification | null;
   class: TClassesWithStudentsRelation;
 };
 
@@ -43,3 +46,5 @@ export type TExampleResultClassRelation = {
 
 export type TCreateStudent = z.infer<typeof createStudentSchema>;
 export type TUpdateStudent = z.infer<typeof updateStudentSchema>;
+export type TUpdateGrades = z.infer<typeof updateGradesSchema>;
+export type TBatchUpdateGrades = z.infer<typeof batchUpdateGradesSchema>;

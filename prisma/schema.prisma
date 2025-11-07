@@ -26,7 +26,7 @@ model Students {
     permanentAddress  String?
     vneid             String    @unique
     avgScoredSubjects Float     @default(0) @map("avg_scored_subjects")
-    avgOverall        Float     @default(0) @map("avg_overall")
+    avgOverall        Float?    @map("avg_overall")
     conduct           EConduct?
     createdAt         DateTime  @default(now()) @map("created_at")
     updatedAt         DateTime  @default(now()) @map("updated_at")
@@ -90,18 +90,18 @@ model Subjects {
 }
 
 model ExamResults {
-    student_id Int
-    subject_id Int
-    scored     Float
-    createdAt  DateTime @default(now()) @map("created_at")
-    updatedAt  DateTime @default(now()) @map("updated_at")
+    studentId Int      @map("student_id")
+    subjectId Int      @map("subject_id")
+    scored    Float
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @default(now()) @map("updated_at")
 
-    student Students @relation(fields: [student_id], references: [id])
-    subject Subjects @relation(fields: [subject_id], references: [id])
+    student Students @relation(fields: [studentId], references: [id])
+    subject Subjects @relation(fields: [subjectId], references: [id])
 
-    @@id([student_id, subject_id])
-    @@index([student_id])
-    @@index([subject_id])
+    @@id([studentId, subjectId])
+    @@index([studentId])
+    @@index([subjectId])
     @@index([scored])
     @@map("exam_results")
 }
