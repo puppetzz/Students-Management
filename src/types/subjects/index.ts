@@ -18,5 +18,6 @@ export type TCreateSubject = z.infer<typeof createSubjectSchema>;
 
 export type TSubjectForClass = {
   id: number;
+  code: string;
   name: string;
 };

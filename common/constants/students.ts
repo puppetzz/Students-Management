@@ -44,3 +44,16 @@ export const CONDUCT_CLASSIFICATION_MAPPINGS = {
     [EGradeClassification.EXCELLENT]: EGradeClassification.VERY_GOOD,
   },
 };
+
+// Excel import/export constants
+export const EXCEL_GRADES_KEYS = {
+  STT: "STT",
+  CCCD: "CCCD",
+  FN: "Tên",
+  LN: "Họ",
+  RL: "Rèn Luyện",
+  AVG_SCORED: "DTB Môn Đã Có KQ",
+  AVG_OVERALL: "DTB Toàn Khóa",
+  CURRENT_CLASS: "Xếp Loại Hiện Tại",
+  FINAL_CLASS: "Xếp Loại Cuối Khóa",
+};

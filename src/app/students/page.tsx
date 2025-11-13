@@ -14,6 +14,8 @@ import useSearchParams from "~/hooks/useSearchParams";
 import dayjs from "dayjs";
 import { CreateStudentModal, ViewAndEditModal } from "../_components/students";
 
+import { read, utils, writeFileXLSX } from "xlsx";
+
 const Students = () => {
   const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(
     null,
@@ -200,6 +202,72 @@ const Students = () => {
     openCreateModal();
   };
 
+  const processExcelFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = read(data, { type: "array" });
+
+      // Get the first worksheet
+      const worksheetName = workbook.SheetNames[0];
+      if (!worksheetName) return;
+      const worksheet = workbook.Sheets[worksheetName];
+      if (!worksheet) return;
+
+      // Convert to JSON
+      const jsonData = utils.sheet_to_json(worksheet);
+      // console.log(
+      //   Object.entries(jsonData[0]).map(([key, value]) => `${key}: ${value}`),
+      // );
+      console.log(jsonData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleImportFromExcel = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx,.xls";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        processExcelFile(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleExportToExcel = () => {
+    if (!studentsQuery.data?.data) return;
+
+    const exportData = studentsQuery.data.data.map((student, index) => ({
+      STT: index + 1,
+      "Họ và Tên": `${student.lastName} ${student.firstName}`,
+      "Ngày Sinh": dayjs(student.dayOfBirth).format("DD/MM/YYYY"),
+      CCCD: student.vneid,
+      "Quê Quán": student.hometown,
+      "Trú Quán": student.permanentAddress,
+    }));
+
+    const worksheet = utils.json_to_sheet(exportData);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, "Danh Sách Học Viên");
+
+    // Set column widths
+    worksheet["!cols"] = [
+      { width: 5 }, // STT
+      { width: 25 }, // Họ và Tên
+      { width: 12 }, // Ngày Sinh
+      { width: 15 }, // CCCD
+      { width: 20 }, // Quê Quán
+      { width: 25 }, // Trú Quán
+    ];
+
+    const fileName = `danh_sach_hoc_vien_${dayjs().format("YYYY_MM_DD")}.xlsx`;
+    writeFileXLSX(workbook, fileName);
+  };
+
   return (
     <>
       <div className="mt-1 max-h-screen overflow-auto">
@@ -218,10 +286,18 @@ const Students = () => {
               </Button>
             </div>
             <div className="flex gap-2">
-              <Button color="green" variant="outline">
+              <Button
+                color="green"
+                variant="outline"
+                onClick={handleImportFromExcel}
+              >
                 Nhập Từ Excel
               </Button>
-              <Button color="orange" variant="outline">
+              <Button
+                color="orange"
+                variant="outline"
+                onClick={handleExportToExcel}
+              >
                 Xuất Ra Excel
               </Button>
             </div>

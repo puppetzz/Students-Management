@@ -17,6 +17,8 @@ import {
 import useSearchParams from "~/hooks/useSearchParams";
 import { ViewAndEditGrades } from "../_components/grades/ViewAndEditGrades";
 import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesModal";
+import { ImportExcelModal } from "../_components/grades/ImportExcelModal";
+import { ExportGradeButton } from "../_components/grades/ExportGradeButton";
 
 const Grades = () => {
   const searchParams = useSearchParams();
@@ -36,6 +38,11 @@ const Grades = () => {
   const [
     openedBatchUpdateModal,
     { open: openBatchUpdateModal, close: closeBatchUpdateModal },
+  ] = useDisclosure(false);
+
+  const [
+    openedImportExcelModal,
+    { open: openImportExcelModal, close: closeImportExcelModal },
   ] = useDisclosure(false);
 
   // Fetch Data
@@ -249,6 +256,9 @@ const Grades = () => {
         openViewAndEditModal();
       },
     }),
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
   const debouncedSearch = useDebouncedCallback((value: string) => {
     searchParams.setParam("search", value);
@@ -273,12 +283,21 @@ const Grades = () => {
             <Button color="blue" onClick={openBatchUpdateModal}>
               Cập Nhật Điểm
             </Button>
-            <Button color="green" variant="outline">
+            <Button
+              color="green"
+              variant="outline"
+              onClick={openImportExcelModal}
+            >
               Nhập Từ Excel
             </Button>
-            <Button color="orange" variant="outline">
-              Xuất Ra Excel
-            </Button>
+            <ExportGradeButton
+              students={studentsQuery.data ?? []}
+              subjects={subjectsQuery.data?.data ?? []}
+              className={classData?.name}
+              termName={termData?.name}
+              isLoading={studentsQuery.isFetching}
+              disabled={!studentsQuery.data || studentsQuery.data.length === 0}
+            />
           </div>
           <div className="border-t border-[#dee2e6]"></div>
           <div className="flex justify-between py-1">
@@ -342,6 +361,12 @@ const Grades = () => {
           name: classData?.name ?? "N/A",
           termName: termData?.name ?? "N/A",
         }}
+      />
+      <ImportExcelModal
+        opened={openedImportExcelModal}
+        onClose={closeImportExcelModal}
+        initialTermId={termId ? String(termId) : undefined}
+        initialClassId={classId ? String(classId) : undefined}
       />
     </>
   );

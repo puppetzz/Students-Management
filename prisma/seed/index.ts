@@ -141,7 +141,7 @@ async function main() {
   }
 
   // Student data arrays
-  const firstNames = [
+  const lastNames = [
     "Nguyễn Văn",
     "Trần Văn",
     "Lê Thị",
@@ -164,7 +164,7 @@ async function main() {
     "Đinh Văn",
   ];
 
-  const lastNames = [
+  const firstNames = [
     "An",
     "Bình",
     "Cúc",

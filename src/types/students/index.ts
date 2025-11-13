@@ -48,3 +48,10 @@ export type TCreateStudent = z.infer<typeof createStudentSchema>;
 export type TUpdateStudent = z.infer<typeof updateStudentSchema>;
 export type TUpdateGrades = z.infer<typeof updateGradesSchema>;
 export type TBatchUpdateGrades = z.infer<typeof batchUpdateGradesSchema>;
+
+export type ExcelStudentGradesRowData = {
+  STT?: string | number;
+  CCCD?: string;
+  RL?: string;
+  [key: string]: string | number | undefined;
+};
