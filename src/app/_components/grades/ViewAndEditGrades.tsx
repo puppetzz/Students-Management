@@ -8,10 +8,7 @@ import {
 } from "@mantine/core";
 
 import { useEffect, useState } from "react";
-import type {
-  TStudentWithGradesResponse,
-  TUpdateGrades,
-} from "~/types/students";
+import type { TStudentGradesResponse, TUpdateGrades } from "~/types/students";
 import {
   GradeDisplay,
   GradeBadge,
@@ -30,7 +27,7 @@ type Props = {
   opened: boolean;
   onClose: () => void;
   student:
-    | (TStudentWithGradesResponse & {
+    | (TStudentGradesResponse & {
         className: string;
         termName: string;
       })
@@ -61,9 +58,9 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
     if (student) {
       const defaultValues = student.examResults.map((result) => {
         return {
-          subjectId: result.subject.id,
+          subjectId: result.subjectId,
           score: result.scored,
-          name: result.subject.name,
+          name: result.subjectName,
         };
       });
       reset({
@@ -170,8 +167,8 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
                           </Table.Thead>
                           <Table.Tbody>
                             {student.examResults.map((result) => (
-                              <Table.Tr key={result.subject.id}>
-                                <Table.Td>{result.subject.name}</Table.Td>
+                              <Table.Tr key={result.subjectId}>
+                                <Table.Td>{result.subjectName}</Table.Td>
                                 <Table.Td>
                                   {isEditMode ? (
                                     <NumberInput
@@ -251,7 +248,9 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg font-bold text-blue-900">
-                                    {student?.avgScoredSubjects.toFixed(2)}
+                                    {(student?.avgScoredSubjects ?? 0).toFixed(
+                                      2,
+                                    )}
                                   </span>
                                   <GradeBadge
                                     score={student?.avgScoredSubjects || 0}
@@ -305,10 +304,10 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg font-bold text-emerald-900">
-                                    {student?.avgOverall.toFixed(2)}
+                                    {(student?.avgOverall ?? 0).toFixed(2)}
                                   </span>
                                   <GradeBadge
-                                    score={student?.avgOverall || 0}
+                                    score={student?.avgOverall ?? 0}
                                   />
                                 </div>
                               </div>

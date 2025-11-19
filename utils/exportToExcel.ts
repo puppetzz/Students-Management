@@ -10,6 +10,7 @@ import {
   type EGradeClassification,
 } from "common/constants/students";
 import type { EConduct } from "@prisma/client";
+import type { TExamResults } from "../src/types/students";
 
 // Use the actual type from the API response
 export interface StudentGradeExportData {
@@ -22,13 +23,7 @@ export interface StudentGradeExportData {
   conduct: EConduct | null;
   currentClassification: EGradeClassification | null;
   finalClassification: EGradeClassification | null;
-  examResults: Array<{
-    scored: number;
-    subject: {
-      id: number;
-      name: string;
-    };
-  }>;
+  examResults: Array<TExamResults>;
 }
 
 export interface ExportData {
@@ -91,7 +86,7 @@ export const exportStudentGradesToExcel = (data: ExportData) => {
     // Add subject scores
     subjects.forEach((subject) => {
       const examResult = student.examResults.find(
-        (result) => result.subject.id === subject.id,
+        (result) => result.subjectId === subject.id,
       );
       row.push(examResult?.scored ?? 0);
     });
@@ -203,7 +198,7 @@ export const exportStudentGradesToExcelWithCustomHeaders = (
     // Add subject scores
     subjects.forEach((subject) => {
       const examResult = student.examResults.find(
-        (result) => result.subject.id === subject.id,
+        (result) => result.subjectId === subject.id,
       );
       row.push(examResult?.scored ?? 0);
     });

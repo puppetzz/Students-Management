@@ -8,7 +8,7 @@ import {
 } from "mantine-react-table";
 import { Button, Select, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
-import type { TStudentWithGradesResponse } from "~/types/students";
+import type { TStudentGradesResponse } from "~/types/students";
 import { api } from "~/trpc/react";
 import {
   CONDUCT_LANGUAGE_MAPPING,
@@ -28,7 +28,7 @@ const Grades = () => {
   const classId = searchParams.getParam("classId");
 
   const [selectedStudent, setSelectedStudent] =
-    useState<TStudentWithGradesResponse | null>(null);
+    useState<TStudentGradesResponse | null>(null);
 
   const [
     openedViewAndEditModal,
@@ -112,7 +112,7 @@ const Grades = () => {
     );
   }, [classesQuery.data]);
 
-  const columns = useMemo<MRT_ColumnDef<TStudentWithGradesResponse>[]>(
+  const columns = useMemo<MRT_ColumnDef<TStudentGradesResponse>[]>(
     () => [
       {
         accessorKey: "stt",
@@ -143,12 +143,12 @@ const Grades = () => {
                   return (
                     <span>
                       {row.original.examResults.find(
-                        (result) => result.subject.id === subject.id,
+                        (result) => result.subjectId === subject.id,
                       )?.scored ?? 0}
                     </span>
                   );
                 },
-              }) as MRT_ColumnDef<TStudentWithGradesResponse>,
+              }) as MRT_ColumnDef<TStudentGradesResponse>,
           )
         : []),
       {
@@ -162,7 +162,8 @@ const Grades = () => {
         accessorKey: "avgOverall",
         header: "DTB Toàn Khóa",
         Cell: ({ row }) => {
-          return <span>{row.original.avgOverall.toFixed(2)}</span>;
+          const avg = row.original.avgOverall ?? 0;
+          return <span>{avg.toFixed(2)}</span>;
         },
       },
       {
@@ -225,7 +226,7 @@ const Grades = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: (studentsQuery.data ?? []) as TStudentWithGradesResponse[],
+    data: (studentsQuery.data ?? []) as TStudentGradesResponse[],
     enablePagination: false,
     enableStickyHeader: true,
     mantineTableContainerProps: {
@@ -357,7 +358,7 @@ const Grades = () => {
         classData={{
           id: classId ? Number(classId) : 0,
           termId: termId ? Number(termId) : 0,
-          students: (studentsQuery?.data ?? []) as TStudentWithGradesResponse[],
+          students: (studentsQuery?.data ?? []) as TStudentGradesResponse[],
           name: classData?.name ?? "N/A",
           termName: termData?.name ?? "N/A",
         }}

@@ -4,7 +4,7 @@ import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
   EGradeClassification,
 } from "common/constants/students";
-import { sql } from "kysely";
+import { sql, type InferResult } from "kysely";
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
@@ -116,41 +116,55 @@ export const studentRouter = createTRPCRouter({
           : {}),
       };
 
-      const students = await ctx.db.students.findMany({
-        where,
-        orderBy: { firstName: "asc" },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          vneid: true,
-          dayOfBirth: true,
-          avgOverall: true,
-          avgScoredSubjects: true,
-          conduct: true,
-          createdAt: true,
-          updatedAt: true,
-          examResults: {
-            select: {
-              scored: true,
-              createdAt: true,
-              updatedAt: true,
-              subject: {
-                select: {
-                  name: true,
-                  code: true,
-                  id: true,
-                },
-              },
-            },
-          },
-          class: {
-            select: {
-              termId: true,
-            },
-          },
-        },
-      });
+      const studentsQueryCompiled = kyselyDB
+        .selectFrom("students")
+        .leftJoin("classes", "students.class_id", "classes.id")
+        .leftJoin("exam_results", "students.id", "exam_results.student_id")
+        .leftJoin("subjects", "exam_results.subject_id", "subjects.id")
+        .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
+        .$if(!!search, (qb) =>
+          qb.where((eb) =>
+            eb.or([
+              sql<boolean>`vietnamese_unaccent(students.first_name) % vietnamese_unaccent(${sql.lit(search)})`,
+              sql<boolean>`vietnamese_unaccent(students.last_name) % vietnamese_unaccent(${sql.lit(search)})`,
+            ]),
+          ),
+        )
+        .select([
+          "students.id as id",
+          "students.first_name as firstName",
+          "students.last_name as lastName",
+          "students.vneid as vneid",
+          "students.day_of_birth as dayOfBirth",
+          "students.avg_overall as avgOverall",
+          "students.avg_scored_subjects as avgScoredSubjects",
+          "students.conduct as conduct",
+          "students.class_id as classId",
+          sql`MAX(classes.term_id)`.as("termId"),
+          sql<
+            Array<{
+              subjectId: number;
+              subjectName: string;
+              subjectCode: string;
+              scored: number;
+              updatedAt: Date;
+            }>
+          >`JSON_AGG(JSON_BUILD_OBJECT(
+        'subjectId', subjects.id,
+        'subjectName', subjects.name,
+        'subjectCode', subjects.code,
+        'scored', exam_results.scored,
+        'updatedAt', exam_results.updated_at)
+      )`.as("examResults"),
+        ])
+        .groupBy("students.id")
+        .compile();
+
+      const students = await ctx.db.$queryRawUnsafe<
+        InferResult<typeof studentsQueryCompiled>
+      >(studentsQueryCompiled.sql, ...studentsQueryCompiled.parameters);
+
+      console.log("Fetched students with grades:", students.length);
 
       const processedStudentsData = students.map((student) => {
         const haveAnyScores = student.examResults.length > 0;

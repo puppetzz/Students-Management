@@ -20,7 +20,7 @@ import { api } from "~/trpc/react";
 import { GradeDisplay } from "./GradeComponents";
 import type {
   TBatchUpdateGrades,
-  TStudentWithGradesResponse,
+  TStudentGradesResponse,
 } from "~/types/students";
 import { batchUpdateGradesSchema } from "common/schema/student";
 
@@ -30,7 +30,7 @@ type Props = {
   classData: {
     id: number;
     name: string;
-    students: TStudentWithGradesResponse[];
+    students: TStudentGradesResponse[];
     termId: number;
     termName?: string;
   };
@@ -61,8 +61,11 @@ export const BatchUpdateGradesModal = ({
     const subjectMap = new Map<number, { id: number; name: string }>();
     classData.students.forEach((student) => {
       student.examResults.forEach((result) => {
-        if (!subjectMap.has(result.subject.id)) {
-          subjectMap.set(result.subject.id, result.subject);
+        if (!subjectMap.has(result.subjectId)) {
+          subjectMap.set(result.subjectId, {
+            id: result.subjectId,
+            name: result.subjectName,
+          });
         }
       });
     });
@@ -90,9 +93,8 @@ export const BatchUpdateGradesModal = ({
         // Fill in existing grades
         student.examResults.forEach((result) => {
           if (initialGrades[student.id.toString()]) {
-            initialGrades[student.id.toString()]![
-              result.subject.id.toString()
-            ] = result.scored;
+            initialGrades[student.id.toString()]![result.subjectId.toString()] =
+              result.scored;
           }
         });
       });

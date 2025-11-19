@@ -55,3 +55,27 @@ export type ExcelStudentGradesRowData = {
   RL?: string;
   [key: string]: string | number | undefined;
 };
+
+export type TStudentGradesResponse = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  vneid: string;
+  dayOfBirth: Date;
+  avgOverall: number | null;
+  avgScoredSubjects: number;
+  conduct: EConduct | null;
+  classId: number;
+  termId: unknown;
+  examResults: TExamResults[];
+  currentClassification: EGradeClassification | null;
+  finalClassification: EGradeClassification | null;
+};
+
+export type TExamResults = {
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
+  scored: number;
+  updatedAt: Date;
+};
