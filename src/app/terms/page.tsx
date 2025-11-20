@@ -100,6 +100,10 @@ const Terms = () => {
         header: "Tên Môn",
       },
       {
+        accessorKey: "schoolYear",
+        header: "Năm Học",
+      },
+      {
         accessorKey: "description",
         header: "Mô Tả",
       },
@@ -179,11 +183,11 @@ const Terms = () => {
     <>
       <div className="mt-5">
         <div className="mb-5 flex justify-center">
-          <h1 className="text-3xl font-bold">Môn Học</h1>
+          <h1 className="text-3xl font-bold">Khóa Học</h1>
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Môn Học</Button>
+          <Button onClick={handleOpenCreateModal}>Thêm Khóa Học</Button>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -218,14 +222,16 @@ const Terms = () => {
       >
         <form onSubmit={handleSubmitEdit(onSubmitUpdateForm)}>
           <TextInput
-            label="Tên Môn"
+            label="Khóa"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <TextInput
             label="Năm Học"
             {...registerEdit("schoolYear")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">

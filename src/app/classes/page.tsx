@@ -287,23 +287,26 @@ const Classes = () => {
           <TextInput
             label="Tên Lớp"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <TextInput
             label="Mô Tả"
             {...registerEdit("description")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
 
           {isViewModal ? (
             <Textarea
               label="Môn học"
-              disabled={isViewModal}
+              readOnly={isViewModal}
               value={
                 getValuesEdit("classSubjects")
                   ?.map((cs) => cs.subject.name)
                   ?.join(", ") ?? ""
               }
+              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
             />
           ) : (
             <MultiSelect
@@ -319,8 +322,9 @@ const Classes = () => {
                   },
                 );
               }}
-              disabled={isViewModal}
+              readOnly={isViewModal}
               searchable
+              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
             />
           )}
 
@@ -333,7 +337,8 @@ const Classes = () => {
                 shouldValidate: true,
               });
             }}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">

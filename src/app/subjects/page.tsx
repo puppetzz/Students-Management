@@ -238,21 +238,36 @@ const Subjects = () => {
           <TextInput
             label="Tên Môn"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
             error={editFormErrors.name?.message}
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
           />
           <TextInput
             label="Mã Môn Học"
             {...registerEdit("code")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
             error={editFormErrors.code?.message}
             required
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
           />
           <TextInput
             label="Mô Tả"
             {...registerEdit("description")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
             error={editFormErrors.description?.message}
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">

@@ -118,6 +118,7 @@ const Grades = () => {
         accessorKey: "stt",
         header: "STT",
         size: 20,
+        enablePinning: true,
         Cell: ({ row }) => {
           return <span> {row.index + 1}</span>;
         },
@@ -125,6 +126,7 @@ const Grades = () => {
       {
         accessorKey: "fullName",
         header: "Họ và Tên",
+        enablePinning: true,
         Cell: ({ row }) => {
           return (
             <span> {row.original.lastName + " " + row.original.firstName}</span>
@@ -229,6 +231,7 @@ const Grades = () => {
     data: (studentsQuery.data ?? []) as TStudentGradesResponse[],
     enablePagination: false,
     enableStickyHeader: true,
+    enableColumnPinning: true,
     mantineTableContainerProps: {
       style: {
         maxHeight: "65vh",
@@ -247,6 +250,7 @@ const Grades = () => {
     state: {
       isLoading: studentsQuery.isFetching,
       columnOrder: columnOrder,
+      columnPinning: { left: ["stt", "fullName"] },
     },
     enableColumnOrdering: false,
     mantineTableBodyRowProps: ({ row }) => ({
@@ -279,26 +283,30 @@ const Grades = () => {
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
         </div>
-        <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
-          <div className="flex justify-end gap-2 py-2">
+        <div className="my-2 rounded-sm border border-[#dee2e6] px-2 py-1">
+          <div className="flex justify-between gap-2 py-2">
             <Button color="blue" onClick={openBatchUpdateModal}>
               Cập Nhật Điểm
             </Button>
-            <Button
-              color="green"
-              variant="outline"
-              onClick={openImportExcelModal}
-            >
-              Nhập Từ Excel
-            </Button>
-            <ExportGradeButton
-              students={studentsQuery.data ?? []}
-              subjects={subjectsQuery.data?.data ?? []}
-              className={classData?.name}
-              termName={termData?.name}
-              isLoading={studentsQuery.isFetching}
-              disabled={!studentsQuery.data || studentsQuery.data.length === 0}
-            />
+            <div className="flex gap-2">
+              <Button
+                color="green"
+                variant="outline"
+                onClick={openImportExcelModal}
+              >
+                Nhập Từ Excel
+              </Button>
+              <ExportGradeButton
+                students={studentsQuery.data ?? []}
+                subjects={subjectsQuery.data?.data ?? []}
+                className={classData?.name}
+                termName={termData?.name}
+                isLoading={studentsQuery.isFetching}
+                disabled={
+                  !studentsQuery.data || studentsQuery.data.length === 0
+                }
+              />
+            </div>
           </div>
           <div className="border-t border-[#dee2e6]"></div>
           <div className="flex justify-between py-1">

@@ -106,6 +106,7 @@ const Students = () => {
         accessorKey: "stt",
         header: "STT",
         size: 20,
+        enablePinning: true,
         Cell: ({ row }) => {
           return <span> {row.index + 1}</span>;
         },
@@ -113,6 +114,7 @@ const Students = () => {
       {
         accessorKey: "fullName",
         header: "Họ và Tên",
+        enablePinning: true,
         Cell: ({ row }) => {
           return (
             <span> {row.original.lastName + " " + row.original.firstName}</span>
@@ -164,6 +166,7 @@ const Students = () => {
     data: studentsQuery.data?.data ?? [],
     enablePagination: false,
     enableStickyHeader: true,
+    enableColumnPinning: true,
     mantineTableContainerProps: {
       style: {
         maxHeight: "65vh",
@@ -182,6 +185,7 @@ const Students = () => {
     state: {
       isLoading: studentsQuery.isFetching,
       columnOrder: columnOrder,
+      columnPinning: { left: ["stt", "fullName"] },
     },
     enableColumnOrdering: false,
     mantineTableBodyRowProps: ({ row }) => ({
@@ -193,6 +197,9 @@ const Students = () => {
         openViewAndEditModal();
       },
     }),
+    enableSorting: false,
+    enableColumnFilters: false,
+    enableColumnActions: false,
   });
   const debouncedSearch = useDebouncedCallback((value: string) => {
     searchParams.setParam("search", value);
@@ -274,11 +281,11 @@ const Students = () => {
         <div className="mb-5 flex justify-center">
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
         </div>
-        <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
+        <div className="my-2 rounded-sm border border-[#dee2e6] px-2 py-1">
           <div className="flex justify-between gap-2 py-2">
             <div className="flex gap-2">
               <Button
-                color="blue"
+                color="green"
                 variant="filled"
                 onClick={handleOpenCreateModal}
               >

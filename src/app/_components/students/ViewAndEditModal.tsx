@@ -121,7 +121,11 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
     <>
       {data && (
         <Modal
-          title="Thêm Học Viên"
+          title={
+            <span>
+              {isEditMode ? "Chỉnh sửa học viên" : "Chi tiết học viên"}
+            </span>
+          }
           opened={opened}
           onClose={handleClose}
           styles={{
@@ -146,7 +150,10 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                       className="flex-1"
                       required
                       error={errors.lastName?.message}
-                      disabled={!isEditMode}
+                      readOnly={!isEditMode}
+                      styles={{
+                        input: { cursor: !isEditMode ? "default" : "text" },
+                      }}
                     />
                     <TextInput
                       label="Tên"
@@ -155,7 +162,10 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                       className="flex-1"
                       required
                       error={errors.firstName?.message}
-                      disabled={!isEditMode}
+                      readOnly={!isEditMode}
+                      styles={{
+                        input: { cursor: !isEditMode ? "default" : "text" },
+                      }}
                     />
                   </div>
                   <div className="mb-4 flex gap-4">
@@ -169,7 +179,7 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                       value={selectedTerm?.toString()}
                       required
                       allowDeselect={false}
-                      disabled={!isEditMode}
+                      readOnly={!isEditMode}
                     />
                     <Select
                       label="Lớp"
@@ -184,7 +194,7 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                       required
                       error={errors.classId?.message}
                       allowDeselect={false}
-                      disabled={!isEditMode}
+                      readOnly={!isEditMode}
                     />
                   </div>
                   <DatePickerInput
@@ -199,7 +209,7 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                     error={errors.dayOfBirth?.message}
                     placeholder="Chọn ngày sinh"
                     required
-                    disabled={!isEditMode}
+                    readOnly={!isEditMode}
                   />
                   <TextInput
                     label="CCCD"
@@ -207,7 +217,10 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                     placeholder="Nhập số căn cước công dân"
                     {...register("vneid")}
                     error={errors.vneid?.message}
-                    disabled={!isEditMode}
+                    readOnly={!isEditMode}
+                    styles={{
+                      input: { cursor: !isEditMode ? "default" : "text" },
+                    }}
                   />
                   <TextInput
                     label="Quê Quán"
@@ -215,7 +228,10 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                     placeholder="Nhập quê quán"
                     {...register("hometown")}
                     error={errors.hometown?.message}
-                    disabled={!isEditMode}
+                    readOnly={!isEditMode}
+                    styles={{
+                      input: { cursor: !isEditMode ? "default" : "text" },
+                    }}
                   />
                   <TextInput
                     label="Trú Quán"
@@ -223,7 +239,10 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                     placeholder="Nhập trú quán"
                     {...register("permanentAddress")}
                     error={errors.permanentAddress?.message}
-                    disabled={!isEditMode}
+                    readOnly={!isEditMode}
+                    styles={{
+                      input: { cursor: !isEditMode ? "default" : "text" },
+                    }}
                   />
                 </Box>
               </ScrollArea>
