@@ -279,7 +279,17 @@ const Students = () => {
 
   return (
     <>
-      <div className="mt-1 max-h-screen overflow-auto">
+      <div className="relative max-h-screen min-h-screen overflow-auto p-4">
+        <div
+          className="absolute inset-0 z-[-1]"
+          style={{
+            backgroundImage: "url(/bg_2.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.5,
+          }}
+        />
         <div className="mb-5 flex items-center justify-between py-2">
           <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
@@ -289,7 +299,7 @@ const Students = () => {
             className="top-0 right-4 h-16 w-16"
           />
         </div>
-        <div className="my-2 rounded-sm border border-[#dee2e6] px-2 py-1">
+        <div className="my-2 rounded-sm border border-[#dee2e6] bg-white px-2 py-1">
           <div className="flex justify-between gap-2 py-2">
             <div className="flex gap-2">
               <Button
@@ -351,7 +361,9 @@ const Students = () => {
             </div>
           </div>
         </div>
-        <MantineReactTable table={table} />
+        <div className="">
+          <MantineReactTable table={table} />
+        </div>
       </div>
       <CreateStudentModal
         opened={openedCreateModal}

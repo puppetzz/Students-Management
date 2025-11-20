@@ -49,7 +49,7 @@ export default function RootLayout({
                   <SideBars />
                 </aside>
                 <main className="min-w-0 flex-1 overflow-auto">
-                  <div className="max-w-full p-4">{children}</div>
+                  <div>{children}</div>
                 </main>
               </div>
               <ToastContainer />
