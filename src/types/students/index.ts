@@ -14,12 +14,15 @@ export type TStudent = {
   id: number;
   firstName: string;
   lastName: string;
+  vneid: string;
   dayOfBirth: Date;
+  avgOverall: number | null;
+  avgScoredSubjects: number;
+  conduct: EConduct | null;
+  classId: number;
+  termId: number;
   createdAt: Date;
   updatedAt: Date;
-  vneid: string;
-  classId: number;
-  class: TClassesWithStudentsRelation;
 };
 
 export type TStudentInfoResponse = TStudent & {

@@ -23,7 +23,7 @@ model Students {
     lastName          String    @map("last_name")
     dayOfBirth        DateTime  @map("day_of_birth")
     hometown          String?
-    permanentAddress  String?
+    permanentAddress  String?   @map("permanent_address")
     vneid             String    @unique
     avgScoredSubjects Float     @default(0) @map("avg_scored_subjects")
     avgOverall        Float?    @map("avg_overall")

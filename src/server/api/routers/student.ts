@@ -44,53 +44,61 @@ export const studentRouter = createTRPCRouter({
       const take = pageSize ?? undefined;
       const skip = pageSize && page ? pageSize * (page - 1) : undefined;
 
-      const where: Prisma.StudentsWhereInput = {
-        ...(classId ? { classId: classId } : {}),
-        ...(search
-          ? {
-              OR: [
-                { firstName: { contains: search, mode: "insensitive" } },
-                { lastName: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      };
+      const studentsQuery = kyselyDB
+        .selectFrom("students")
+        .leftJoin("classes", "students.class_id", "classes.id")
+        .leftJoin("exam_results", "students.id", "exam_results.student_id")
+        .leftJoin("subjects", "exam_results.subject_id", "subjects.id")
+        .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
+        .$if(!!search, (qb) =>
+          qb.where((eb) =>
+            eb.or([
+              sql<boolean>`vietnamese_unaccent(students.first_name) % vietnamese_unaccent(${sql.lit(search)})`,
+              sql<boolean>`vietnamese_unaccent(students.last_name) % vietnamese_unaccent(${sql.lit(search)})`,
+            ]),
+          ),
+        );
+
+      const studentsQueryCompiled = studentsQuery
+        .select([
+          "students.id as id",
+          "students.first_name as firstName",
+          "students.last_name as lastName",
+          "students.vneid as vneid",
+          "students.day_of_birth as dayOfBirth",
+          "students.avg_overall as avgOverall",
+          "students.avg_scored_subjects as avgScoredSubjects",
+          "students.conduct as conduct",
+          "students.class_id as classId",
+          sql<number>`MAX(classes.term_id)`.as("termId"),
+          "students.created_at as createdAt",
+          "students.updated_at as updatedAt",
+          "students.hometown as hometown",
+          "students.permanent_address as permanentAddress",
+        ])
+        .$if(!!take, (qb) => qb.limit(take!))
+        .$if(!!skip, (qb) => qb.offset(skip!))
+        .groupBy("students.id")
+        .compile();
+
+      const countStudentsQueryCompiled = studentsQuery
+        .select([sql`CAST(COUNT(DISTINCT students.id) AS INTEGER)`.as("count")])
+        .compile();
 
       const [students, totalRecords] = await Promise.all([
-        ctx.db.students.findMany({
-          where,
-          orderBy: { firstName: "asc" },
-          skip,
-          take,
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            dayOfBirth: true,
-            createdAt: true,
-            updatedAt: true,
-            hometown: true,
-            permanentAddress: true,
-            vneid: true,
-            classId: true,
-            class: {
-              select: {
-                termId: true,
-              },
-            },
-          },
-        }),
-
-        ctx.db.subjects.count({
-          select: {
-            id: true,
-          },
-        }),
+        ctx.db.$queryRawUnsafe<InferResult<typeof studentsQueryCompiled>>(
+          studentsQueryCompiled.sql,
+          ...studentsQueryCompiled.parameters,
+        ),
+        ctx.db.$queryRawUnsafe<InferResult<typeof countStudentsQueryCompiled>>(
+          countStudentsQueryCompiled.sql,
+          ...countStudentsQueryCompiled.parameters,
+        ),
       ]);
 
       return {
         data: students,
-        total: totalRecords.id,
+        total: totalRecords[0]?.count ?? 0,
       };
     }),
 
@@ -103,18 +111,6 @@ export const studentRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { classId, search } = input;
-
-      const where: Prisma.StudentsWhereInput = {
-        ...(classId ? { classId: classId } : {}),
-        ...(search
-          ? {
-              OR: [
-                { firstName: { contains: search } },
-                { lastName: { contains: search } },
-              ],
-            }
-          : {}),
-      };
 
       const studentsQueryCompiled = kyselyDB
         .selectFrom("students")
@@ -163,8 +159,6 @@ export const studentRouter = createTRPCRouter({
       const students = await ctx.db.$queryRawUnsafe<
         InferResult<typeof studentsQueryCompiled>
       >(studentsQueryCompiled.sql, ...studentsQueryCompiled.parameters);
-
-      console.log("Fetched students with grades:", students.length);
 
       const processedStudentsData = students.map((student) => {
         const haveAnyScores = student.examResults.length > 0;

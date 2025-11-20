@@ -192,7 +192,7 @@ const Students = () => {
       onClick: () => {
         setSelectedStudent({
           ...row.original,
-          termId: row.original.class.termId,
+          termId: row.original.termId,
         });
         openViewAndEditModal();
       },
@@ -251,7 +251,9 @@ const Students = () => {
     const exportData = studentsQuery.data.data.map((student, index) => ({
       STT: index + 1,
       "Họ và Tên": `${student.lastName} ${student.firstName}`,
-      "Ngày Sinh": dayjs(student.dayOfBirth).format("DD/MM/YYYY"),
+      "Ngày Sinh": student.dayOfBirth
+        ? dayjs(student.dayOfBirth as Date).format("DD/MM/YYYY")
+        : "",
       CCCD: student.vneid,
       "Quê Quán": student.hometown,
       "Trú Quán": student.permanentAddress,
