@@ -7,7 +7,7 @@ import { TRPCReactProvider } from "~/trpc/react";
 
 import { createTheme, MantineProvider } from "@mantine/core";
 import { ToastContainer } from "react-toastify";
-import { SideBars } from "./_components/sidebars";
+import { ConditionalLayout } from "./_components/ConditionalLayout";
 
 import "@mantine/core/styles.css"; //import Mantine V7 styles needed by MRT
 import "@mantine/dates/styles.css"; //if using mantine date picker features
@@ -44,14 +44,7 @@ export default function RootLayout({
             }}
           >
             <TRPCReactProvider>
-              <div className="flex h-screen">
-                <aside className="shrink-0 transition-all duration-300">
-                  <SideBars />
-                </aside>
-                <main className="min-w-0 flex-1 overflow-auto">
-                  <div className="max-w-full p-4">{children}</div>
-                </main>
-              </div>
+              <ConditionalLayout>{children}</ConditionalLayout>
               <ToastContainer />
             </TRPCReactProvider>
           </DatesProvider>

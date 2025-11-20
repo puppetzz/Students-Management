@@ -7,8 +7,7 @@ import {
   IconChartBar,
   IconSchool,
   IconUsers,
-  IconChevronLeft,
-  IconChevronRight,
+  IconMenu2,
 } from "@tabler/icons-react";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -69,11 +68,7 @@ export function SideBars() {
           className="mb-4 flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-black dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
           title={isMinimal ? "Expand sidebar" : "Minimize sidebar"}
         >
-          {isMinimal ? (
-            <IconChevronRight stroke={1.5} className="h-4 w-4" />
-          ) : (
-            <IconChevronLeft stroke={1.5} className="h-4 w-4" />
-          )}
+          <IconMenu2 stroke={1.5} className="h-6 w-6" />
         </button>
 
         {/* Navigation Items */}
