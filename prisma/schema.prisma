@@ -13,7 +13,7 @@ generator kysely {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
@@ -23,10 +23,10 @@ model Students {
     lastName          String    @map("last_name")
     dayOfBirth        DateTime  @map("day_of_birth")
     hometown          String?
-    permanentAddress  String?
+    permanentAddress  String?   @map("permanent_address")
     vneid             String    @unique
     avgScoredSubjects Float     @default(0) @map("avg_scored_subjects")
-    avgOverall        Float     @default(0) @map("avg_overall")
+    avgOverall        Float?    @map("avg_overall")
     conduct           EConduct?
     createdAt         DateTime  @default(now()) @map("created_at")
     updatedAt         DateTime  @default(now()) @map("updated_at")
@@ -36,6 +36,9 @@ model Students {
 
     examResults ExamResults[]
 
+    @@index([classId])
+    @@index([firstName, lastName])
+    @@index([createdAt])
     @@map("students")
 }
 
@@ -51,6 +54,8 @@ model Classes {
     term          Terms           @relation(fields: [termId], references: [id])
     students      Students[]
 
+    @@index([termId])
+    @@index([name])
     @@map("classes")
 }
 
@@ -63,11 +68,14 @@ model Terms {
 
     classes Classes[]
 
+    @@index([schoolYear])
+    @@index([name])
     @@map("terms")
 }
 
 model Subjects {
     id          Int      @id @default(autoincrement())
+    code        String   @unique
     name        String
     description String?
     createdAt   DateTime @default(now()) @map("created_at")
@@ -76,20 +84,25 @@ model Subjects {
     classSubjects ClassSubjects[]
     examResults   ExamResults[]
 
+    @@index([name])
+    @@index([code])
     @@map("subjects")
 }
 
 model ExamResults {
-    student_id Int
-    subject_id Int
-    scored     Float
-    createdAt  DateTime @default(now()) @map("created_at")
-    updatedAt  DateTime @default(now()) @map("updated_at")
+    studentId Int      @map("student_id")
+    subjectId Int      @map("subject_id")
+    scored    Float
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @default(now()) @map("updated_at")
 
-    student Students @relation(fields: [student_id], references: [id])
-    subject Subjects @relation(fields: [subject_id], references: [id])
+    student Students @relation(fields: [studentId], references: [id])
+    subject Subjects @relation(fields: [subjectId], references: [id])
 
-    @@id([student_id, subject_id])
+    @@id([studentId, subjectId])
+    @@index([studentId])
+    @@index([subjectId])
+    @@index([scored])
     @@map("exam_results")
 }
 
@@ -101,6 +114,8 @@ model ClassSubjects {
     subject Subjects @relation(fields: [subjectId], references: [id])
 
     @@id([classId, subjectId])
+    @@index([classId])
+    @@index([subjectId])
     @@map("class_subjects")
 }
 

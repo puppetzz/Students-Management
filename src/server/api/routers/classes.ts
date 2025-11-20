@@ -1,5 +1,5 @@
 import { type Prisma } from "@prisma/client";
-import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
@@ -10,17 +10,18 @@ export const classesRouter = createTRPCRouter({
       z.object({
         search: z.string().optional(),
         termId: z.number().optional(),
-        page: z.number().optional().default(DEFAULT_PAGE),
-        pageSize: z.number().optional().default(DEFAULT_PAGE_SIZE),
+        page: z.number().optional(),
+        pageSize: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { search, termId } = input;
+      const { search, termId, page, pageSize } = input;
       const where: Prisma.ClassesWhereInput = {
         ...(search
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),
@@ -37,10 +38,13 @@ export const classesRouter = createTRPCRouter({
         orderBy.unshift({ createdAt: "desc" });
       }
 
-      console.log(orderBy);
+      const skip = page && pageSize ? (page - 1) * pageSize : undefined;
+      const take = pageSize ?? undefined;
 
       const [classes, totalCount] = await Promise.all([
         ctx.db.classes.findMany({
+          skip,
+          take,
           where,
           orderBy,
           select: {
@@ -109,6 +113,19 @@ export const classesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { subjectIds, ...rest } = input;
+
+      const termExists = await ctx.db.terms.findFirst({
+        where: {
+          id: rest.termId,
+        },
+      });
+
+      if (!termExists) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Khóa không tồn tại",
+        });
+      }
 
       const createdClass = await ctx.db.classes.create({
         data: {

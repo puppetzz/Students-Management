@@ -18,7 +18,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SideBars } from "../_components/sidebars";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -152,7 +151,7 @@ const Classes = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: classesData,
+    data: classesData as TClasses[],
     state: {
       isLoading: classesQuery.isFetching,
     },
@@ -176,6 +175,10 @@ const Classes = () => {
     }),
     enablePagination: false,
     enableBottomToolbar: false,
+    enableTopToolbar: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
 
   const onSubmitUpdateForm = useCallback(
@@ -240,11 +243,16 @@ const Classes = () => {
   }, [termQuery.data?.data]);
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
-      <div className="mt-10 flex-1">
-        <div className="mb-5 flex justify-center">
+    <>
+      <div className="">
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
           <h1 className="text-3xl font-bold">Quản Lý Lớp</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">
@@ -285,23 +293,26 @@ const Classes = () => {
           <TextInput
             label="Tên Lớp"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <TextInput
             label="Mô Tả"
             {...registerEdit("description")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
 
           {isViewModal ? (
             <Textarea
               label="Môn học"
-              disabled={isViewModal}
+              readOnly={isViewModal}
               value={
                 getValuesEdit("classSubjects")
                   ?.map((cs) => cs.subject.name)
                   ?.join(", ") ?? ""
               }
+              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
             />
           ) : (
             <MultiSelect
@@ -317,8 +328,9 @@ const Classes = () => {
                   },
                 );
               }}
-              disabled={isViewModal}
+              readOnly={isViewModal}
               searchable
+              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
             />
           )}
 
@@ -331,7 +343,8 @@ const Classes = () => {
                 shouldValidate: true,
               });
             }}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">
@@ -412,7 +425,7 @@ const Classes = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 

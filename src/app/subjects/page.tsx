@@ -10,7 +10,6 @@ import { Button, Modal, Pagination, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SideBars } from "../_components/sidebars";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -39,6 +38,7 @@ const Subjects = () => {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
+    formState: { errors: editFormErrors },
   } = useForm({
     resolver: zodResolver(updateSubjectSchema),
   });
@@ -46,6 +46,7 @@ const Subjects = () => {
     register: registerCreate,
     handleSubmit: handleSubmitCreate,
     reset: resetCreate,
+    formState: { errors: createFormErrors },
   } = useForm({
     resolver: zodResolver(createSubjectSchema),
   });
@@ -78,11 +79,12 @@ const Subjects = () => {
   const subjectCreateMutation = api.subject.create.useMutation();
 
   const handleOpenViewModal = (data: TUpdateSubject) => {
-    const { id, name, description } = data;
+    const { id, name, description, code } = data;
 
     resetEdit({
       id: id,
       name: name,
+      code: code,
       description: description,
     });
 
@@ -108,6 +110,10 @@ const Subjects = () => {
         header: "Tên Môn",
       },
       {
+        accessorKey: "code",
+        header: "Mã Môn Học",
+      },
+      {
         accessorKey: "description",
         header: "Mô Tả",
       },
@@ -124,20 +130,26 @@ const Subjects = () => {
     data: subjectsData,
     state: {
       isLoading: subjectsQuery.isFetching,
+      columnOrder: ["STT", "name", "code", "description"],
     },
     mantineTableBodyRowProps: ({ row }) => ({
       onClick: () => {
-        const { id, name, description } = row.original;
+        const { id, name, description, code } = row.original;
 
         handleOpenViewModal({
           id,
           name,
           description,
+          code,
         });
       },
     }),
     enablePagination: false,
     enableBottomToolbar: false,
+    enableTopToolbar: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
 
   const onSubmitUpdateForm = useCallback(
@@ -147,6 +159,7 @@ const Subjects = () => {
           id: data.id,
           name: data.name,
           description: data.description ?? undefined,
+          code: data.code,
         },
         {
           onSuccess: () => {
@@ -166,6 +179,7 @@ const Subjects = () => {
         {
           name: data.name,
           description: data.description ?? undefined,
+          code: data.code,
         },
         {
           onSuccess: () => {
@@ -180,11 +194,16 @@ const Subjects = () => {
   );
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
-      <div className="mt-10 flex-1">
-        <div className="mb-5 flex justify-center">
-          <h1 className="text-3xl font-bold">Môn Học</h1>
+    <>
+      <div>
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
+          <h1 className="text-3xl font-bold">Quản Lý Môn Học</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">
@@ -225,12 +244,36 @@ const Subjects = () => {
           <TextInput
             label="Tên Môn"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            error={editFormErrors.name?.message}
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
+          />
+          <TextInput
+            label="Mã Môn Học"
+            {...registerEdit("code")}
+            readOnly={isViewModal}
+            error={editFormErrors.code?.message}
+            required
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
           />
           <TextInput
             label="Mô Tả"
             {...registerEdit("description")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            error={editFormErrors.description?.message}
+            styles={{
+              input: {
+                cursor: isViewModal ? "default" : "text",
+              },
+            }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">
@@ -265,16 +308,30 @@ const Subjects = () => {
           },
         }}
       >
-        <form onSubmit={handleSubmitCreate(onSubmitCreateForm)}>
+        <form
+          onSubmit={handleSubmitCreate(onSubmitCreateForm)}
+          className="flex flex-col gap-2"
+        >
           <TextInput
-            label="Tên Môn"
+            label="Tên Môn Học"
             {...registerCreate("name")}
-            placeholder="Nhập Tên Môn"
+            placeholder="Nhập Tên Môn Học"
+            error={createFormErrors.name?.message}
+            required
+          />
+          <TextInput
+            label="Mã Môn Học"
+            {...registerCreate("code")}
+            placeholder="Nhập Mã Môn Học"
+            error={createFormErrors.code?.message}
+            required
           />
           <TextInput
             label="Mô Tả"
             {...registerCreate("description")}
-            placeholder="Nhập Mô Tả Cho Môn"
+            placeholder="Nhập Mô Tả Cho Môn Học"
+            error={createFormErrors.description?.message}
+            required
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">
@@ -286,7 +343,7 @@ const Subjects = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 

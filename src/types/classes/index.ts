@@ -23,3 +23,7 @@ export type TClasses = {
 export type TClassSubject = {
   subject: TSubjectForClass;
 };
+
+export type TClassesWithStudentsRelation = {
+  termId: number;
+};

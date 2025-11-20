@@ -10,7 +10,6 @@ import { Button, Modal, Pagination, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SideBars } from "../_components/sidebars";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -101,6 +100,10 @@ const Terms = () => {
         header: "Tên Môn",
       },
       {
+        accessorKey: "schoolYear",
+        header: "Năm Học",
+      },
+      {
         accessorKey: "description",
         header: "Mô Tả",
       },
@@ -131,6 +134,10 @@ const Terms = () => {
     }),
     enablePagination: false,
     enableBottomToolbar: false,
+    enableTopToolbar: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
 
   const onSubmitUpdateForm = useCallback(
@@ -173,15 +180,20 @@ const Terms = () => {
   );
 
   return (
-    <div className="flex gap-1">
-      <SideBars />
-      <div className="mt-10 flex-1">
-        <div className="mb-5 flex justify-center">
-          <h1 className="text-3xl font-bold">Môn Học</h1>
+    <>
+      <div>
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
+          <h1 className="text-3xl font-bold">Quản Lý Môn Học</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Môn Học</Button>
+          <Button onClick={handleOpenCreateModal}>Thêm Khóa Học</Button>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -216,14 +228,16 @@ const Terms = () => {
       >
         <form onSubmit={handleSubmitEdit(onSubmitUpdateForm)}>
           <TextInput
-            label="Tên Môn"
+            label="Khóa"
             {...registerEdit("name")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <TextInput
             label="Năm Học"
             {...registerEdit("schoolYear")}
-            disabled={isViewModal}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <div className="flex justify-end">
             <div className="mt-2 flex gap-2">
@@ -279,7 +293,7 @@ const Terms = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 };
 

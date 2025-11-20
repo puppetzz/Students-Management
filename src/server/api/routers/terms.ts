@@ -9,8 +9,8 @@ export const termRouter = createTRPCRouter({
     .input(
       z.object({
         search: z.string().optional(),
-        page: z.number().optional().default(DEFAULT_PAGE),
-        pageSize: z.number().optional().default(DEFAULT_PAGE_SIZE),
+        page: z.number().optional(),
+        pageSize: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -20,13 +20,14 @@ export const termRouter = createTRPCRouter({
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),
       };
 
-      const skip = (page - 1) * pageSize;
-      const take = pageSize;
+      const skip = page && pageSize ? (page - 1) * pageSize : undefined;
+      const take = pageSize ?? undefined;
 
       const [terms, totalRecords] = await Promise.all([
         ctx.db.terms.findMany({

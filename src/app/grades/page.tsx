@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MantineReactTable,
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { Button, Modal, Select, TextInput } from "@mantine/core";
+import { Button, Select, TextInput } from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
-import { SideBars } from "../_components/sidebars";
-import type { TStudentResponse } from "~/types/students";
+import type { TStudentGradesResponse } from "~/types/students";
 import { api } from "~/trpc/react";
-import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
+import {
+  CONDUCT_LANGUAGE_MAPPING,
+  GRADE_CLASSIFICATIONS,
+} from "common/constants/students";
 import useSearchParams from "~/hooks/useSearchParams";
+import { ViewAndEditGrades } from "../_components/grades/ViewAndEditGrades";
+import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesModal";
+import { ImportExcelModal } from "../_components/grades/ImportExcelModal";
+import { ExportGradeButton } from "../_components/grades/ExportGradeButton";
 
 const Grades = () => {
   const searchParams = useSearchParams();
@@ -21,11 +27,27 @@ const Grades = () => {
   const termId = searchParams.getParam("termId");
   const classId = searchParams.getParam("classId");
 
+  const [selectedStudent, setSelectedStudent] =
+    useState<TStudentGradesResponse | null>(null);
+
+  const [
+    openedViewAndEditModal,
+    { open: openViewAndEditModal, close: closeViewAndEditModal },
+  ] = useDisclosure(false);
+
+  const [
+    openedBatchUpdateModal,
+    { open: openBatchUpdateModal, close: closeBatchUpdateModal },
+  ] = useDisclosure(false);
+
+  const [
+    openedImportExcelModal,
+    { open: openImportExcelModal, close: closeImportExcelModal },
+  ] = useDisclosure(false);
+
   // Fetch Data
-  const studentsQuery = api.student.getAll.useQuery(
+  const studentsQuery = api.student.getWithGrades.useQuery(
     {
-      page: 1,
-      pageSize: 1000,
       classId: classId ? Number(classId) : undefined,
       search: (search as string) ?? undefined,
     },
@@ -37,11 +59,16 @@ const Grades = () => {
     page: 1,
     pageSize: 1000,
   });
-  const classesQuery = api.classes.getAll.useQuery({
-    page: 1,
-    pageSize: 1000,
-    termId: termId ? Number(termId) : undefined,
-  });
+  const classesQuery = api.classes.getAll.useQuery(
+    {
+      page: 1,
+      pageSize: 1000,
+      termId: termId ? Number(termId) : undefined,
+    },
+    {
+      enabled: !!termId,
+    },
+  );
   const subjectsQuery = api.subject.getAll.useQuery(
     {
       page: 1,
@@ -53,17 +80,19 @@ const Grades = () => {
     },
   );
 
+  // Set termId first if missing
   useEffect(() => {
-    const updateSearchParamsData: Record<string, string> = {};
-    if (!termId && termsQuery.data?.data[0]?.id)
-      updateSearchParamsData.termId = termsQuery.data.data[0].id.toString();
+    if (!termId && termsQuery.data?.data[0]?.id) {
+      searchParams.setParam("termId", termsQuery.data.data[0].id.toString());
+    }
+  }, [termsQuery.data, termId, searchParams]);
 
-    if (!classId && classesQuery.data?.data[0]?.id)
-      updateSearchParamsData.classId = classesQuery.data.data[0].id.toString();
-
-    if (Object.keys(updateSearchParamsData).length > 0)
-      searchParams.setParams(updateSearchParamsData);
-  }, [termsQuery.data, classesQuery.data]);
+  // Set classId only after termId is set and classes are loaded for that term
+  useEffect(() => {
+    if (termId && !classId && classesQuery.data?.data[0]?.id) {
+      searchParams.setParam("classId", classesQuery.data.data[0].id.toString());
+    }
+  }, [classesQuery.data, termId, classId, searchParams]);
 
   // Data
   const termsSelectData = useMemo(() => {
@@ -83,12 +112,13 @@ const Grades = () => {
     );
   }, [classesQuery.data]);
 
-  const columns = useMemo<MRT_ColumnDef<TStudentResponse>[]>(
+  const columns = useMemo<MRT_ColumnDef<TStudentGradesResponse>[]>(
     () => [
       {
         accessorKey: "stt",
         header: "STT",
         size: 20,
+        enablePinning: true,
         Cell: ({ row }) => {
           return <span> {row.index + 1}</span>;
         },
@@ -96,6 +126,7 @@ const Grades = () => {
       {
         accessorKey: "fullName",
         header: "Họ và Tên",
+        enablePinning: true,
         Cell: ({ row }) => {
           return (
             <span> {row.original.lastName + " " + row.original.firstName}</span>
@@ -114,12 +145,12 @@ const Grades = () => {
                   return (
                     <span>
                       {row.original.examResults.find(
-                        (result) => result.subject.id === subject.id,
+                        (result) => result.subjectId === subject.id,
                       )?.scored ?? 0}
                     </span>
                   );
                 },
-              }) as MRT_ColumnDef<TStudentResponse>,
+              }) as MRT_ColumnDef<TStudentGradesResponse>,
           )
         : []),
       {
@@ -133,7 +164,8 @@ const Grades = () => {
         accessorKey: "avgOverall",
         header: "DTB Toàn Khóa",
         Cell: ({ row }) => {
-          return <span>{row.original.avgOverall.toFixed(2)}</span>;
+          const avg = row.original.avgOverall ?? 0;
+          return <span>{avg.toFixed(2)}</span>;
         },
       },
       {
@@ -143,7 +175,7 @@ const Grades = () => {
           return (
             <span>
               {row.original.currentClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.currentClassification]
+                ? GRADE_CLASSIFICATIONS[row.original.currentClassification]
                 : "Chưa xếp loại"}
             </span>
           );
@@ -156,7 +188,7 @@ const Grades = () => {
           return (
             <span>
               {row.original.finalClassification
-                ? CONDUCT_LANGUAGE_MAPPING[row.original.finalClassification]
+                ? GRADE_CLASSIFICATIONS[row.original.finalClassification]
                 : "Chưa xếp loại"}
             </span>
           );
@@ -196,9 +228,10 @@ const Grades = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: studentsQuery.data?.data ?? [],
+    data: (studentsQuery.data ?? []) as TStudentGradesResponse[],
     enablePagination: false,
     enableStickyHeader: true,
+    enableColumnPinning: true,
     mantineTableContainerProps: {
       style: {
         maxHeight: "65vh",
@@ -217,28 +250,69 @@ const Grades = () => {
     state: {
       isLoading: studentsQuery.isFetching,
       columnOrder: columnOrder,
+      columnPinning: { left: ["stt", "fullName"] },
     },
     enableColumnOrdering: false,
+    mantineTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        setSelectedStudent({
+          ...row.original,
+        });
+        openViewAndEditModal();
+      },
+    }),
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
   const debouncedSearch = useDebouncedCallback((value: string) => {
     searchParams.setParam("search", value);
   }, 300);
 
+  const classData = useMemo(() => {
+    return classesQuery.data?.data.find((cls) => cls.id === Number(classId));
+  }, [classesQuery.data, classId]);
+
+  const termData = useMemo(() => {
+    return termsQuery.data?.data.find((term) => term.id === Number(termId));
+  }, [termsQuery.data, termId]);
+
   return (
-    <div className="flex h-screen gap-1">
-      <SideBars />
-      <div className="mt-10 max-h-screen flex-1 overflow-auto">
-        <div className="mb-5 flex justify-center">
-          <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
+    <>
+      <div className="max-h-screen overflow-auto">
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
+          <h1 className="text-3xl font-bold">Quản Lý Điểm</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
-        <div className="my-2 rounded-sm border border-[#dee2e6] p-1">
-          <div className="flex justify-end gap-2 py-2">
-            <Button color="green" variant="outline">
-              Nhập Từ Excel
+        <div className="my-2 rounded-sm border border-[#dee2e6] px-2 py-1">
+          <div className="flex justify-between gap-2 py-2">
+            <Button color="blue" onClick={openBatchUpdateModal}>
+              Cập Nhật Điểm
             </Button>
-            <Button color="orange" variant="outline">
-              Xuất Ra Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                color="green"
+                variant="outline"
+                onClick={openImportExcelModal}
+              >
+                Nhập Từ Excel
+              </Button>
+              <ExportGradeButton
+                students={studentsQuery.data ?? []}
+                subjects={subjectsQuery.data?.data ?? []}
+                className={classData?.name}
+                termName={termData?.name}
+                isLoading={studentsQuery.isFetching}
+                disabled={
+                  !studentsQuery.data || studentsQuery.data.length === 0
+                }
+              />
+            </div>
           </div>
           <div className="border-t border-[#dee2e6]"></div>
           <div className="flex justify-between py-1">
@@ -277,7 +351,39 @@ const Grades = () => {
         </div>
         <MantineReactTable table={table} />
       </div>
-    </div>
+
+      <ViewAndEditGrades
+        opened={openedViewAndEditModal}
+        onClose={closeViewAndEditModal}
+        student={
+          selectedStudent
+            ? {
+                ...selectedStudent,
+                className: classData?.name ?? "N/A",
+                termName: termData?.name ?? "N/A",
+              }
+            : null
+        }
+      />
+
+      <BatchUpdateGradesModal
+        opened={openedBatchUpdateModal}
+        onClose={closeBatchUpdateModal}
+        classData={{
+          id: classId ? Number(classId) : 0,
+          termId: termId ? Number(termId) : 0,
+          students: (studentsQuery?.data ?? []) as TStudentGradesResponse[],
+          name: classData?.name ?? "N/A",
+          termName: termData?.name ?? "N/A",
+        }}
+      />
+      <ImportExcelModal
+        opened={openedImportExcelModal}
+        onClose={closeImportExcelModal}
+        initialTermId={termId ? String(termId) : undefined}
+        initialClassId={classId ? String(classId) : undefined}
+      />
+    </>
   );
 };
 

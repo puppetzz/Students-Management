@@ -25,6 +25,7 @@ export const subjectRouter = createTRPCRouter({
           ? {
               name: {
                 contains: search,
+                mode: "insensitive",
               },
             }
           : {}),
@@ -79,12 +80,17 @@ export const subjectRouter = createTRPCRouter({
     }),
 
   create: publicProcedure
-    .input(z.object({ name: z.string(), description: z.string().optional() }))
+    .input(
+      z.object({
+        code: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.subjects.create({
         data: {
-          name: input.name,
-          description: input.description,
+          ...input,
         },
       });
     }),
@@ -93,18 +99,20 @@ export const subjectRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
+        code: z.string(),
         name: z.string(),
         description: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, name, description } = input;
+      const { id, name, description, code } = input;
       return ctx.db.subjects.update({
         where: {
           id,
         },
         data: {
           name: name,
+          code: code,
           description: description,
           updatedAt: new Date(),
         },

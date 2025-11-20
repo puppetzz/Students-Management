@@ -6,6 +6,7 @@ import type {
 
 export type TSubject = {
   id: number;
+  code: string;
   name: string;
   description: string | null;
   createdAt: Date;
@@ -17,5 +18,6 @@ export type TCreateSubject = z.infer<typeof createSubjectSchema>;
 
 export type TSubjectForClass = {
   id: number;
+  code: string;
   name: string;
 };
