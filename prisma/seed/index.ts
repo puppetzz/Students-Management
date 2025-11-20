@@ -229,17 +229,20 @@ async function main() {
 
   // Create Students for each class
   const allStudents = [];
+  let studentCounter = 1; // Global counter for unique student IDs
 
   for (let classIndex = 0; classIndex < classes.length; classIndex++) {
     const classObj = classes[classIndex];
+    if (!classObj) continue;
+
     const studentsPerClass = classIndex < 2 ? 8 : 10; // K71 classes have 8 students, others have 10
 
     for (let i = 0; i < studentsPerClass; i++) {
       const firstName =
-        firstNames[Math.floor(Math.random() * firstNames.length)];
-      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-      const hometown = hometowns[Math.floor(Math.random() * hometowns.length)];
-      const conduct = conducts[Math.floor(Math.random() * conducts.length)];
+        firstNames[Math.floor(Math.random() * firstNames.length)]!;
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]!;
+      const hometown = hometowns[Math.floor(Math.random() * hometowns.length)]!;
+      const conduct = conducts[Math.floor(Math.random() * conducts.length)]!;
 
       // Generate birth year based on course
       let birthYear = 2001; // Default for K71
@@ -249,8 +252,10 @@ async function main() {
       const birthMonth = Math.floor(Math.random() * 12) + 1;
       const birthDay = Math.floor(Math.random() * 28) + 1;
 
-      // Generate unique VNEID
-      const vneid = `00${birthYear}${String(birthMonth).padStart(2, "0")}${String(classIndex).padStart(2, "0")}${String(i).padStart(3, "0")}`;
+      // Generate unique VNEID with exactly 12 characters
+      // Format: YYYYMMDDXXXX where YYYY is birth year, MM is birth month, DD is birth day, XXXX is unique counter
+      const vneid = `${birthYear}${String(birthMonth).padStart(2, "0")}${String(birthDay).padStart(2, "0")}${String(studentCounter).padStart(4, "0")}`;
+      studentCounter++;
 
       const student = await prisma.students.create({
         data: {
