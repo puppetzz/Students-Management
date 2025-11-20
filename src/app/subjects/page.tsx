@@ -195,9 +195,15 @@ const Subjects = () => {
 
   return (
     <>
-      <div className="mt-5">
-        <div className="mb-5 flex justify-center">
-          <h1 className="text-3xl font-bold">Môn Học</h1>
+      <div>
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
+          <h1 className="text-3xl font-bold">Quản Lý Môn Học</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">

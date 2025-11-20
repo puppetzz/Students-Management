@@ -278,8 +278,14 @@ const Students = () => {
   return (
     <>
       <div className="mt-1 max-h-screen overflow-auto">
-        <div className="mb-5 flex justify-center">
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
           <h1 className="text-3xl font-bold">Quản Lý Học Viên</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] px-2 py-1">
           <div className="flex justify-between gap-2 py-2">

@@ -244,9 +244,15 @@ const Classes = () => {
 
   return (
     <>
-      <div className="mt-5">
-        <div className="mb-5 flex justify-center">
+      <div className="">
+        <div className="mb-5 flex items-center justify-between py-2">
+          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
           <h1 className="text-3xl font-bold">Quản Lý Lớp</h1>
+          <img
+            src="/TQSQK5.png"
+            alt="Logo"
+            className="top-0 right-4 h-16 w-16"
+          />
         </div>
 
         <div className="mb-2 rounded-sm border-gray-500 py-2">
