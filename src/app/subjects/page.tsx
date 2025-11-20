@@ -146,6 +146,10 @@ const Subjects = () => {
     }),
     enablePagination: false,
     enableBottomToolbar: false,
+    enableTopToolbar: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
 
   const onSubmitUpdateForm = useCallback(

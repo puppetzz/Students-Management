@@ -18,7 +18,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SideBars } from "../_components/sidebars";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -152,7 +151,7 @@ const Classes = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: classesData,
+    data: classesData as TClasses[],
     state: {
       isLoading: classesQuery.isFetching,
     },
@@ -176,6 +175,10 @@ const Classes = () => {
     }),
     enablePagination: false,
     enableBottomToolbar: false,
+    enableTopToolbar: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enableSorting: false,
   });
 
   const onSubmitUpdateForm = useCallback(
