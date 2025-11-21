@@ -1,4 +1,4 @@
-import { EConduct, type Prisma } from "@prisma/client";
+import { EConduct } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
@@ -107,10 +107,26 @@ export const studentRouter = createTRPCRouter({
       z.object({
         classId: z.number().optional(),
         search: z.string().optional(),
+        orderBy: z
+          .enum([
+            "firstName",
+            "avgScoredSubjects",
+            "avgOverall",
+            "conduct",
+            "currentClassification",
+            "finalClassification",
+          ])
+          .nullable()
+          .optional(),
+        orderDirection: z
+          .enum(["asc", "desc"])
+          .nullable()
+          .optional()
+          .default("asc"),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { classId, search } = input;
+      const { classId, search, orderBy, orderDirection } = input;
 
       const studentsQueryCompiled = kyselyDB
         .selectFrom("students")
@@ -154,6 +170,28 @@ export const studentRouter = createTRPCRouter({
       )`.as("examResults"),
         ])
         .groupBy("students.id")
+        .$if(
+          !!orderBy &&
+            [
+              "firstName",
+              "avgScoredSubjects",
+              "avgOverall",
+              "conduct",
+            ].includes(orderBy),
+          (qb) => {
+            const direction = orderDirection === "desc" ? "desc" : "asc";
+            if (orderBy === "firstName") {
+              return qb.orderBy("students.first_name", direction);
+            } else if (orderBy === "avgScoredSubjects") {
+              return qb.orderBy("students.avg_scored_subjects", direction);
+            } else if (orderBy === "avgOverall") {
+              return qb.orderBy("students.avg_overall", direction);
+            } else if (orderBy === "conduct") {
+              return qb.orderBy("students.conduct", direction);
+            }
+            return qb;
+          },
+        )
         .compile();
 
       const students = await ctx.db.$queryRawUnsafe<
@@ -180,6 +218,37 @@ export const studentRouter = createTRPCRouter({
           finalClassification,
         };
       });
+
+      // Sort by classification fields if needed (these are calculated fields)
+      if (
+        orderBy === "currentClassification" ||
+        orderBy === "finalClassification"
+      ) {
+        const classificationOrder: Record<EGradeClassification, number> = {
+          [EGradeClassification.EXCELLENT]: 1,
+          [EGradeClassification.VERY_GOOD]: 2,
+          [EGradeClassification.GOOD]: 3,
+          [EGradeClassification.FAIRLY_GOOD]: 4,
+          [EGradeClassification.AVERAGE]: 5,
+          [EGradeClassification.FAILED]: 6,
+        };
+
+        processedStudentsData.sort((a, b) => {
+          const aValue =
+            orderBy === "currentClassification"
+              ? a.currentClassification
+              : a.finalClassification;
+          const bValue =
+            orderBy === "currentClassification"
+              ? b.currentClassification
+              : b.finalClassification;
+
+          const aOrder = aValue ? classificationOrder[aValue] : 999;
+          const bOrder = bValue ? classificationOrder[bValue] : 999;
+
+          return orderDirection === "desc" ? bOrder - aOrder : aOrder - bOrder;
+        });
+      }
 
       return processedStudentsData;
     }),

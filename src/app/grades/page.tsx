@@ -26,6 +26,8 @@ const Grades = () => {
   const search = searchParams.getParam("search");
   const termId = searchParams.getParam("termId");
   const classId = searchParams.getParam("classId");
+  const orderBy = searchParams.getParam("orderBy");
+  const orderDirection = searchParams.getParam("orderDirection");
 
   const [selectedStudent, setSelectedStudent] =
     useState<TStudentGradesResponse | null>(null);
@@ -50,6 +52,15 @@ const Grades = () => {
     {
       classId: classId ? Number(classId) : undefined,
       search: (search as string) ?? undefined,
+      orderBy: orderBy as
+        | "firstName"
+        | "avgScoredSubjects"
+        | "avgOverall"
+        | "conduct"
+        | "currentClassification"
+        | "finalClassification"
+        | undefined,
+      orderDirection: orderDirection as "asc" | "desc" | undefined,
     },
     {
       enabled: !!classId,
@@ -277,6 +288,20 @@ const Grades = () => {
     return termsQuery.data?.data.find((term) => term.id === Number(termId));
   }, [termsQuery.data, termId]);
 
+  const sortOptions = [
+    { value: "firstName", label: "Tên" },
+    { value: "avgScoredSubjects", label: "DTB Môn Có KQ" },
+    { value: "avgOverall", label: "DTB Toàn Khóa" },
+    { value: "currentClassification", label: "Xếp Loại Hiện Tại" },
+    { value: "finalClassification", label: "Xếp Loại Cuối Khóa" },
+    { value: "conduct", label: "Rèn Luyện" },
+  ];
+
+  const sortDirectionOptions = [
+    { value: "asc", label: "Tăng dần" },
+    { value: "desc", label: "Giảm dần" },
+  ];
+
   return (
     <>
       <div className="relative max-h-screen min-h-screen overflow-auto p-4">
@@ -353,6 +378,25 @@ const Grades = () => {
                 className="w-50"
                 onChange={(e) => {
                   debouncedSearch(e.target.value);
+                }}
+              />
+              <Select
+                label="Sắp Xếp Theo"
+                className="w-40"
+                data={sortOptions}
+                value={orderBy as string | null}
+                onChange={(value) => {
+                  searchParams.setParam("orderBy", value);
+                }}
+                clearable
+              />
+              <Select
+                label="Thứ Tự"
+                className="w-30"
+                data={sortDirectionOptions}
+                value={(orderDirection as string) ?? "asc"}
+                onChange={(value) => {
+                  searchParams.setParam("orderDirection", value);
                 }}
               />
             </div>
