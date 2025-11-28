@@ -19,6 +19,7 @@ import { ViewAndEditGrades } from "../_components/grades/ViewAndEditGrades";
 import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesModal";
 import { ImportExcelModal } from "../_components/grades/ImportExcelModal";
 import { ExportGradeButton } from "../_components/grades/ExportGradeButton";
+import { StatisticsModal } from "../_components/grades/StatisticsModal";
 
 const Grades = () => {
   const searchParams = useSearchParams();
@@ -43,6 +44,11 @@ const Grades = () => {
   const [
     openedImportExcelModal,
     { open: openImportExcelModal, close: closeImportExcelModal },
+  ] = useDisclosure(false);
+
+  const [
+    openedStatisticsModal,
+    { open: openStatisticsModal, close: closeStatisticsModal },
   ] = useDisclosure(false);
 
   // Fetch Data
@@ -301,9 +307,19 @@ const Grades = () => {
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] bg-white px-2 py-1">
           <div className="flex justify-between gap-2 py-2">
-            <Button color="blue" onClick={openBatchUpdateModal}>
-              Cập Nhật Điểm
-            </Button>
+            <div className="flex gap-2">
+              <Button color="blue" onClick={openBatchUpdateModal}>
+                Cập Nhật Điểm
+              </Button>
+              <Button
+                color="violet"
+                variant="outline"
+                onClick={openStatisticsModal}
+                disabled={!classId}
+              >
+                Thống Kê
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button
                 color="green"
@@ -392,6 +408,12 @@ const Grades = () => {
         onClose={closeImportExcelModal}
         initialTermId={termId ? String(termId) : undefined}
         initialClassId={classId ? String(classId) : undefined}
+      />
+      <StatisticsModal
+        opened={openedStatisticsModal}
+        onClose={closeStatisticsModal}
+        classId={classId ? Number(classId) : null}
+        className={classData?.name}
       />
     </>
   );

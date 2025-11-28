@@ -1,8 +1,30 @@
-import { type Prisma } from "@prisma/client";
+import { EConduct, type Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import {
+  CONDUCT_CLASSIFICATION_MAPPINGS,
+  EGradeClassification,
+} from "common/constants/students";
+import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+
+const getFinalClassification = (
+  scoreClassification: EGradeClassification | null,
+  conduct: EConduct | null,
+): EGradeClassification | null => {
+  if (conduct === null || scoreClassification === null) return null;
+
+  // Poor conduct always results in failure
+  if (conduct === EConduct.POOR) return EGradeClassification.FAILED;
+
+  // Excellent conduct maintains the score classification
+  if (conduct === EConduct.EXCELLENT) return scoreClassification;
+
+  return (
+    CONDUCT_CLASSIFICATION_MAPPINGS[conduct]?.[scoreClassification] ?? null
+  );
+};
 
 export const classesRouter = createTRPCRouter({
   getAll: publicProcedure
@@ -190,5 +212,104 @@ export const classesRouter = createTRPCRouter({
       });
 
       return updatedClass;
+    }),
+
+  getGradeStatistics: publicProcedure
+    .input(
+      z.object({
+        classId: z.number(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { classId } = input;
+
+      // Get all students with their exam results for the class
+      const students = await ctx.db.students.findMany({
+        where: {
+          classId,
+        },
+        select: {
+          id: true,
+          avgScoredSubjects: true,
+          avgOverall: true,
+          conduct: true,
+          examResults: {
+            select: {
+              scored: true,
+            },
+          },
+        },
+      });
+
+      if (students.length === 0) {
+        return {
+          total: 0,
+          currentClassificationStats: {},
+          finalClassificationStats: {},
+        };
+      }
+
+      // Calculate classifications for each student
+      const currentClassificationCounts: Record<string, number> = {};
+      const finalClassificationCounts: Record<string, number> = {};
+
+      students.forEach((student) => {
+        const haveAnyScores = student.examResults.length > 0;
+
+        // Calculate current classification
+        const currentClassification = !haveAnyScores
+          ? null
+          : getScoreClassification(student.avgScoredSubjects);
+
+        if (currentClassification) {
+          currentClassificationCounts[currentClassification] =
+            (currentClassificationCounts[currentClassification] || 0) + 1;
+        }
+
+        // Calculate final classification
+        const finalClassification = student.avgOverall
+          ? getFinalClassification(
+              getScoreClassification(student.avgOverall),
+              student.conduct,
+            )
+          : null;
+
+        if (finalClassification) {
+          finalClassificationCounts[finalClassification] =
+            (finalClassificationCounts[finalClassification] || 0) + 1;
+        }
+      });
+
+      const total = students.length;
+
+      // Calculate percentages
+      const currentClassificationStats: Record<
+        string,
+        { count: number; percentage: number }
+      > = {};
+      const finalClassificationStats: Record<
+        string,
+        { count: number; percentage: number }
+      > = {};
+
+      Object.entries(currentClassificationCounts).forEach(([key, count]) => {
+        currentClassificationStats[key] = {
+          count,
+          percentage: (count / total) * 100,
+        };
+      });
+
+      Object.entries(finalClassificationCounts).forEach(([key, count]) => {
+        finalClassificationStats[key] = {
+          count,
+          percentage: (count / total) * 100,
+        };
+      });
+
+      return {
+        total,
+        currentClassificationStats,
+        finalClassificationStats,
+      };
     }),
 });
