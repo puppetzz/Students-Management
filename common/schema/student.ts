@@ -15,7 +15,7 @@ export const createStudentSchema = z.object({
   vneid: z
     .string()
     .min(1, "Số căn cước công dân không được để trống")
-    .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số"),
+    .regex(/^\d{12}$/, "Số căn cước công dân phải có 12 chữ số"),
 });
 
 export const updateStudentSchema = createStudentSchema.extend({
@@ -40,7 +40,7 @@ export const updateStudentSchema = createStudentSchema.extend({
   vneid: z
     .string()
     .min(1, "Số căn cước công dân không được để trống")
-    .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số"),
+    .regex(/^\d{12,13}$/, "Số căn cước công dân phải có 12 hoặc 13 chữ số"),
   termId: z.number().min(1, "Khóa không hợp lệ").optional(),
 });
 
@@ -62,5 +62,22 @@ export const batchUpdateGradesSchema = z.object({
       z.string(), // subjectId
       z.number().min(0).max(10).nullable(),
     ),
+  ),
+});
+
+export const importStudentsFromExcelSchema = z.object({
+  data: z.array(
+    z.object({
+      firstName: z.string().min(1, "Họ và tên đệm không được để trống"),
+      lastName: z.string().min(1, "Tên không được để trống"),
+      dayOfBirth: z.date(),
+      classId: z.number().min(1, "Lớp không hợp lệ"),
+      hometown: z.string().optional(),
+      permanentAddress: z.string().optional(),
+      vneid: z
+        .string()
+        .min(1, "Số căn cước công dân không được để trống")
+        .regex(/^\d{12,13}$/, "Số căn cước công dân phải có 12 hoặc 13 chữ số"),
+    }),
   ),
 });

@@ -79,6 +79,7 @@ export const studentRouter = createTRPCRouter({
         .$if(!!take, (qb) => qb.limit(take!))
         .$if(!!skip, (qb) => qb.offset(skip!))
         .groupBy("students.id")
+        .orderBy("students.first_name", "asc")
         .compile();
 
       const countStudentsQueryCompiled = studentsQuery
@@ -154,6 +155,7 @@ export const studentRouter = createTRPCRouter({
       )`.as("examResults"),
         ])
         .groupBy("students.id")
+        .orderBy("students.first_name", "asc")
         .compile();
 
       const students = await ctx.db.$queryRawUnsafe<
@@ -668,5 +670,72 @@ export const studentRouter = createTRPCRouter({
           ...updateAvgsQuery.parameters,
         ),
       ]);
+    }),
+  importStudentsFromExcel: publicProcedure
+    .input(
+      z.object({
+        data: z.array(
+          z.object({
+            firstName: z.string().min(1),
+            lastName: z.string().min(1),
+            dayOfBirth: z.date(),
+            classId: z.number().min(1),
+            hometown: z.string().optional(),
+            permanentAddress: z.string().optional(),
+            vneid: z.string().regex(/^\d{12}$/),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { data } = input;
+
+      // Check for existing students with the same VNEID
+      const existingVneids = await ctx.db.students.findMany({
+        where: {
+          vneid: {
+            in: data.map((student) => student.vneid),
+          },
+        },
+        select: {
+          vneid: true,
+        },
+      });
+
+      const existingVneidSet = new Set(
+        existingVneids.map((student) => student.vneid),
+      );
+
+      // Filter out students that already exist
+      const newStudents = data.filter(
+        (student) => !existingVneidSet.has(student.vneid),
+      );
+
+      if (newStudents.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Tất cả học viên đã tồn tại trong hệ thống",
+        });
+      }
+
+      // Create new students
+      await ctx.db.students.createMany({
+        data: newStudents.map((student) => ({
+          firstName: student.firstName,
+          lastName: student.lastName,
+          dayOfBirth: student.dayOfBirth,
+          classId: student.classId,
+          hometown: student.hometown,
+          permanentAddress: student.permanentAddress,
+          vneid: student.vneid,
+          avgScoredSubjects: 0,
+        })),
+      });
+
+      return {
+        success: true,
+        created: newStudents.length,
+        skipped: data.length - newStudents.length,
+      };
     }),
 });

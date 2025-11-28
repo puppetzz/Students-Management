@@ -12,9 +12,13 @@ import type { TStudentInfoResponse, TUpdateStudent } from "~/types/students";
 import { api } from "~/trpc/react";
 import useSearchParams from "~/hooks/useSearchParams";
 import dayjs from "dayjs";
-import { CreateStudentModal, ViewAndEditModal } from "../_components/students";
+import {
+  CreateStudentModal,
+  ViewAndEditModal,
+  ImportExcelModal,
+} from "../_components/students";
 
-import { read, utils, writeFileXLSX } from "xlsx";
+import { utils, writeFileXLSX } from "xlsx";
 
 const Students = () => {
   const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(
@@ -34,6 +38,10 @@ const Students = () => {
   const [
     openedViewAndEditModal,
     { open: openViewAndEditModal, close: closeViewAndEditModal },
+  ] = useDisclosure(false);
+  const [
+    openedImportExcelModal,
+    { open: openImportExcelModal, close: closeImportExcelModal },
   ] = useDisclosure(false);
 
   // Fetch Data
@@ -209,68 +217,65 @@ const Students = () => {
     openCreateModal();
   };
 
-  const processExcelFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = read(data, { type: "array" });
-
-      // Get the first worksheet
-      const worksheetName = workbook.SheetNames[0];
-      if (!worksheetName) return;
-      const worksheet = workbook.Sheets[worksheetName];
-      if (!worksheet) return;
-
-      // Convert to JSON
-      const jsonData = utils.sheet_to_json(worksheet);
-      // console.log(
-      //   Object.entries(jsonData[0]).map(([key, value]) => `${key}: ${value}`),
-      // );
-      console.log(jsonData);
-    };
-
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleImportFromExcel = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".xlsx,.xls";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        processExcelFile(file);
-      }
-    };
-    input.click();
-  };
-
   const handleExportToExcel = () => {
     if (!studentsQuery.data?.data) return;
 
-    const exportData = studentsQuery.data.data.map((student, index) => ({
-      STT: index + 1,
-      "Họ và Tên": `${student.lastName} ${student.firstName}`,
-      "Ngày Sinh": student.dayOfBirth
-        ? dayjs(student.dayOfBirth as Date).format("DD/MM/YYYY")
-        : "",
-      CCCD: student.vneid,
-      "Quê Quán": student.hometown,
-      "Trú Quán": student.permanentAddress,
-    }));
+    // Create two-row header structure
+    const worksheetData: (string | number)[][] = [];
 
-    const worksheet = utils.json_to_sheet(exportData);
+    // First row: Keys (technical headers)
+    const technicalHeaders = [
+      "STT",
+      "FN",
+      "LN",
+      "DOB",
+      "CCCD",
+      "HOMETOWN",
+      "ADDRESS",
+    ];
+
+    // Second row: Vietnamese names (display headers)
+    const displayHeaders = [
+      "STT",
+      "Tên",
+      "Họ",
+      "Ngày Sinh",
+      "CCCD",
+      "Quê Quán",
+      "Trú Quán",
+    ];
+
+    worksheetData.push(technicalHeaders);
+    worksheetData.push(displayHeaders);
+
+    // Add student data rows
+    studentsQuery.data.data.forEach((student, index) => {
+      worksheetData.push([
+        index + 1,
+        student.firstName,
+        student.lastName,
+        student.dayOfBirth
+          ? dayjs(student.dayOfBirth).format("DD/MM/YYYY")
+          : "",
+        student.vneid ?? "",
+        student.hometown ?? "",
+        student.permanentAddress ?? "",
+      ]);
+    });
+
+    const worksheet = utils.aoa_to_sheet(worksheetData);
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, "Danh Sách Học Viên");
 
     // Set column widths
     worksheet["!cols"] = [
-      { width: 5 }, // STT
-      { width: 25 }, // Họ và Tên
-      { width: 12 }, // Ngày Sinh
-      { width: 15 }, // CCCD
-      { width: 20 }, // Quê Quán
-      { width: 25 }, // Trú Quán
+      { wch: 5 }, // STT
+      { wch: 15 }, // FN (Tên)
+      { wch: 15 }, // LN (Họ)
+      { wch: 12 }, // DOB (Ngày Sinh)
+      { wch: 15 }, // CCCD
+      { wch: 20 }, // HOMETOWN (Quê Quán)
+      { wch: 25 }, // ADDRESS (Trú Quán)
     ];
 
     const fileName = `danh_sach_hoc_vien_${dayjs().format("YYYY_MM_DD")}.xlsx`;
@@ -314,7 +319,7 @@ const Students = () => {
               <Button
                 color="green"
                 variant="outline"
-                onClick={handleImportFromExcel}
+                onClick={openImportExcelModal}
               >
                 Nhập Từ Excel
               </Button>
@@ -373,6 +378,12 @@ const Students = () => {
         opened={openedViewAndEditModal}
         onClose={closeViewAndEditModal}
         data={selectedStudent}
+      />
+      <ImportExcelModal
+        opened={openedImportExcelModal}
+        onClose={closeImportExcelModal}
+        initialTermId={termId?.toString()}
+        initialClassId={classId?.toString()}
       />
     </>
   );
