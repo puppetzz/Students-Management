@@ -311,14 +311,6 @@ const Grades = () => {
               <Button color="blue" onClick={openBatchUpdateModal}>
                 Cập Nhật Điểm
               </Button>
-              <Button
-                color="violet"
-                variant="outline"
-                onClick={openStatisticsModal}
-                disabled={!classId}
-              >
-                Thống Kê
-              </Button>
             </div>
             <div className="flex gap-2">
               <Button
@@ -372,7 +364,16 @@ const Grades = () => {
                 }}
               />
             </div>
-            <div></div>
+            <div className="flex flex-col justify-end">
+              <Button
+                color="violet"
+                variant="outline"
+                onClick={openStatisticsModal}
+                disabled={!classId}
+              >
+                Thống Kê
+              </Button>
+            </div>
           </div>
         </div>
         <MantineReactTable table={table} />
@@ -415,6 +416,7 @@ const Grades = () => {
         onClose={closeStatisticsModal}
         classId={classId ? Number(classId) : null}
         className={classData?.name}
+        termName={termData?.name}
       />
     </>
   );

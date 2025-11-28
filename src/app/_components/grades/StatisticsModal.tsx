@@ -9,6 +9,7 @@ interface StatisticsModalProps {
   onClose: () => void;
   classId: number | null;
   className?: string;
+  termName?: string;
 }
 
 export const StatisticsModal = ({
@@ -16,6 +17,7 @@ export const StatisticsModal = ({
   onClose,
   classId,
   className,
+  termName,
 }: StatisticsModalProps) => {
   const { data: statistics, isLoading } =
     api.classes.getGradeStatistics.useQuery(
@@ -94,10 +96,10 @@ export const StatisticsModal = ({
             label={
               <div style={{ textAlign: "center" }}>
                 <Text size="xl" fw={700}>
-                  {statistics?.total || 0}
+                  {statistics?.total ?? 0}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  Học sinh
+                  Học viên
                 </Text>
               </div>
             }
@@ -124,7 +126,7 @@ export const StatisticsModal = ({
                 </Group>
                 <Group gap="xs">
                   <Text size="sm" c="dimmed">
-                    {data.count} HS
+                    {data.count} Học viên
                   </Text>
                   <Text size="sm" fw={600}>
                     {data.percentage.toFixed(1)}%
@@ -144,7 +146,8 @@ export const StatisticsModal = ({
       onClose={onClose}
       title={
         <Text size="xl" fw={700}>
-          Thống Kê Xếp Loại{className ? ` - Lớp ${className}` : ""}
+          Thống Kê Xếp Loại
+          {className ? ` - Lớp ${className} - Khóa ${termName}` : ""}
         </Text>
       }
       size="lg"
@@ -154,14 +157,12 @@ export const StatisticsModal = ({
         <Text c="dimmed">Đang tải...</Text>
       ) : statistics ? (
         <Stack gap="xl">
-          <Group justify="space-between">
+          <div className="flex gap-1">
             <Text size="md" fw={500}>
-              Tổng số học sinh:
+              Tổng số học viên:
             </Text>
-            <Badge size="lg" variant="filled" color="blue">
-              {statistics.total}
-            </Badge>
-          </Group>
+            <span className="font-bold">{statistics.total}</span>
+          </div>
 
           {renderStatistics(
             statistics.currentClassificationStats,
