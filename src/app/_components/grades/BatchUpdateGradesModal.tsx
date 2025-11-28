@@ -61,7 +61,7 @@ export const BatchUpdateGradesModal = ({
     const subjectMap = new Map<number, { id: number; name: string }>();
     classData.students.forEach((student) => {
       student.examResults.forEach((result) => {
-        if (!subjectMap.has(result.subjectId)) {
+        if (!subjectMap.has(result.subjectId) && result.subjectName) {
           subjectMap.set(result.subjectId, {
             id: result.subjectId,
             name: result.subjectName,
@@ -70,9 +70,11 @@ export const BatchUpdateGradesModal = ({
       });
     });
 
-    return Array.from(subjectMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
+    return Array.from(subjectMap.values()).sort((a, b) => {
+      const nameA = a.name ?? "";
+      const nameB = b.name ?? "";
+      return nameA.localeCompare(nameB);
+    });
   }, [classData.students]);
 
   // Initialize form data when students data changes
@@ -92,7 +94,10 @@ export const BatchUpdateGradesModal = ({
 
         // Fill in existing grades
         student.examResults.forEach((result) => {
-          if (initialGrades[student.id.toString()]) {
+          if (
+            initialGrades[student.id.toString()] &&
+            result.subjectId != null
+          ) {
             initialGrades[student.id.toString()]![result.subjectId.toString()] =
               result.scored;
           }

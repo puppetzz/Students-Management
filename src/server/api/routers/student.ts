@@ -422,35 +422,47 @@ export const studentRouter = createTRPCRouter({
         },
       });
 
-      const updatedTotalScores = examResults?.reduce(
-        (acc, curr) => {
-          const studentId = curr.studentId;
+      // Initialize all student scores
+      const updatedTotalScores: Record<
+        number,
+        { total: number; count: number }
+      > = {};
+      for (const studentId of updatedStudentIds) {
+        updatedTotalScores[studentId] = { total: 0, count: 0 };
+      }
 
-          if (!(studentId in acc)) {
-            acc[studentId] = { total: 0, count: 0 };
+      // Process existing exam results
+      for (const result of examResults) {
+        const studentId = result.studentId;
+        const isUpdatedScore =
+          updateExampleResults[studentId]?.includes(result.subjectId) ?? false;
+
+        if (isUpdatedScore) {
+          const updatedScore = updatedDataMap.get(
+            `${studentId}-${result.subjectId}`,
+          );
+          if (updatedScore !== undefined) {
+            updatedTotalScores[studentId]!.total += updatedScore;
+            updatedTotalScores[studentId]!.count += 1;
           }
+        } else {
+          updatedTotalScores[studentId]!.total += result.scored;
+          updatedTotalScores[studentId]!.count += 1;
+        }
+      }
 
-          const isUpdatedScore =
-            updateExampleResults[studentId]?.includes(curr.subjectId) ?? false;
+      // Add new grades for students without existing results
+      for (const data of updatedData) {
+        const hasExistingResult = examResults.some(
+          (r) =>
+            r.studentId === data.studentId && r.subjectId === data.subjectId,
+        );
 
-          if (isUpdatedScore) {
-            const updatedScore = updatedDataMap.get(
-              `${studentId}-${curr.subjectId}`,
-            );
-            if (updatedScore !== undefined) {
-              acc[studentId]!.total += updatedScore;
-              acc[studentId]!.count += 1;
-            }
-            return acc;
-          }
-
-          acc[studentId]!.total += curr.scored;
-          acc[studentId]!.count += 1;
-
-          return acc;
-        },
-        {} as Record<number, { total: number; count: number }>,
-      );
+        if (!hasExistingResult) {
+          updatedTotalScores[data.studentId]!.total += data.scored;
+          updatedTotalScores[data.studentId]!.count += 1;
+        }
+      }
 
       const avgScoresToUpdate = Object.entries(updatedTotalScores).map(
         ([studentIdStr, studentData]) => {
@@ -595,35 +607,47 @@ export const studentRouter = createTRPCRouter({
         },
       });
 
-      const updatedTotalScores = examResults?.reduce(
-        (acc, curr) => {
-          const studentId = curr.studentId;
+      // Initialize all student scores
+      const updatedTotalScores: Record<
+        number,
+        { total: number; count: number }
+      > = {};
+      for (const studentId of updatedStudentIds) {
+        updatedTotalScores[studentId] = { total: 0, count: 0 };
+      }
 
-          if (!(studentId in acc)) {
-            acc[studentId] = { total: 0, count: 0 };
+      // Process existing exam results
+      for (const result of examResults) {
+        const studentId = result.studentId;
+        const isUpdatedScore =
+          updateExampleResults[studentId]?.includes(result.subjectId) ?? false;
+
+        if (isUpdatedScore) {
+          const updatedScore = updatedDataMap.get(
+            `${studentId}-${result.subjectId}`,
+          );
+          if (updatedScore !== undefined) {
+            updatedTotalScores[studentId]!.total += updatedScore;
+            updatedTotalScores[studentId]!.count += 1;
           }
+        } else {
+          updatedTotalScores[studentId]!.total += result.scored;
+          updatedTotalScores[studentId]!.count += 1;
+        }
+      }
 
-          const isUpdatedScore =
-            updateExampleResults[studentId]?.includes(curr.subjectId) ?? false;
+      // Add new grades for students without existing results
+      for (const data of updatedData) {
+        const hasExistingResult = examResults.some(
+          (r) =>
+            r.studentId === data.studentId && r.subjectId === data.subjectId,
+        );
 
-          if (isUpdatedScore) {
-            const updatedScore = updatedDataMap.get(
-              `${studentId}-${curr.subjectId}`,
-            );
-            if (updatedScore !== undefined) {
-              acc[studentId]!.total += updatedScore;
-              acc[studentId]!.count += 1;
-            }
-            return acc;
-          }
-
-          acc[studentId]!.total += curr.scored;
-          acc[studentId]!.count += 1;
-
-          return acc;
-        },
-        {} as Record<number, { total: number; count: number }>,
-      );
+        if (!hasExistingResult) {
+          updatedTotalScores[data.studentId]!.total += data.scored;
+          updatedTotalScores[data.studentId]!.count += 1;
+        }
+      }
 
       const avgScoresToUpdate = Object.entries(updatedTotalScores).map(
         ([studentIdStr, studentData]) => {

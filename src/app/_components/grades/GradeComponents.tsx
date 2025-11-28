@@ -7,7 +7,7 @@ import {
 import { EConduct } from "@prisma/client";
 
 interface GradeComponentProps {
-  score: number;
+  score: number | null;
   className?: string;
 }
 
@@ -25,6 +25,16 @@ export const GradeDisplay = ({
   score,
   className = "",
 }: GradeComponentProps) => {
+  if (score === null || score === undefined) {
+    return (
+      <span
+        className={`rounded bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600 ${className}`}
+      >
+        -
+      </span>
+    );
+  }
+
   const classification = getGradeClassification(score);
 
   return (
@@ -37,6 +47,16 @@ export const GradeDisplay = ({
 };
 
 export const GradeBadge = ({ score, className = "" }: GradeComponentProps) => {
+  if (score === null || score === undefined) {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-gray-600 ${className}`}
+      >
+        Chưa có
+      </span>
+    );
+  }
+
   const classification = getGradeClassification(score);
 
   return (
