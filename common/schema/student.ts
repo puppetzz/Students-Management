@@ -49,7 +49,7 @@ export const updateGradesSchema = z.object({
   grades: z.array(
     z.object({
       subjectId: z.number().min(1, "ID môn học không hợp lệ"),
-      score: z.number().min(0).max(10),
+      score: z.number().min(0).max(10).nullable(),
       name: z.string().optional(),
     }),
   ),

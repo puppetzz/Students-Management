@@ -152,7 +152,7 @@ const Grades = () => {
                     <span>
                       {row.original.examResults.find(
                         (result) => result.subjectId === subject.id,
-                      )?.scored ?? 0}
+                      )?.scored ?? "-"}
                     </span>
                   );
                 },
@@ -390,6 +390,7 @@ const Grades = () => {
               }
             : null
         }
+        classSubjects={subjectsQuery.data?.data ?? []}
       />
 
       <BatchUpdateGradesModal

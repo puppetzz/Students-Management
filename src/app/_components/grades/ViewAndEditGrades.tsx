@@ -9,6 +9,7 @@ import {
 
 import { useEffect, useState } from "react";
 import type { TStudentGradesResponse, TUpdateGrades } from "~/types/students";
+import type { TSubject } from "~/types/subjects";
 import {
   GradeDisplay,
   GradeBadge,
@@ -32,9 +33,15 @@ type Props = {
         termName: string;
       })
     | null;
+  classSubjects?: TSubject[];
 };
 
-export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
+export const ViewAndEditGrades = ({
+  opened,
+  onClose,
+  student,
+  classSubjects = [],
+}: Props) => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
@@ -55,29 +62,44 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
   };
 
   useEffect(() => {
-    if (student) {
-      const defaultValues = student.examResults.map((result) => {
+    if (student && classSubjects) {
+      // Create a map of existing exam results for quick lookup
+      const examResultsMap = new Map(
+        student.examResults.map((result) => [result.subjectId, result.scored]),
+      );
+
+      // Map all class subjects, using existing scores or null for missing ones
+      const defaultValues = classSubjects.map((subject) => {
         return {
-          subjectId: result.subjectId,
-          score: result.scored,
-          name: result.subjectName,
+          subjectId: subject.id,
+          score: examResultsMap.get(subject.id) ?? null,
+          name: subject.name,
         };
       });
+
       reset({
         studentId: student.id,
         grades: defaultValues,
       });
     }
-  }, [student, reset]);
+  }, [student, classSubjects, reset]);
 
   const onSubmit = (data: TUpdateGrades) => {
+    // Filter out grades with null scores (subjects without results)
+    const validGrades = data.grades
+      .filter(
+        (grade): grade is TUpdateGrades["grades"][number] & { score: number } =>
+          grade.score !== null && grade.score !== undefined,
+      )
+      .map((grade) => ({
+        subjectId: grade.subjectId,
+        scored: grade.score,
+      }));
+
     updateGradesMutation.mutate(
       {
         id: data.studentId,
-        grades: data.grades.map((grade) => ({
-          subjectId: grade.subjectId,
-          scored: grade.score,
-        })),
+        grades: validGrades,
       },
       {
         onSuccess: () => {
@@ -148,7 +170,7 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
                   <h4 className="font-semibold">Kết quả học tập</h4>
 
                   <div className="mt-2">
-                    {student.examResults && student.examResults.length > 0 ? (
+                    {classSubjects && classSubjects.length > 0 ? (
                       <Paper
                         withBorder
                         styles={{
@@ -166,45 +188,56 @@ export const ViewAndEditGrades = ({ opened, onClose, student }: Props) => {
                             </Table.Tr>
                           </Table.Thead>
                           <Table.Tbody>
-                            {student.examResults.map((result) => (
-                              <Table.Tr key={result.subjectId}>
-                                <Table.Td>{result.subjectName}</Table.Td>
-                                <Table.Td>
-                                  {isEditMode ? (
-                                    <NumberInput
-                                      value={watch(
-                                        `grades.${student.examResults.indexOf(result)}.score`,
-                                      )}
-                                      onChange={(value) =>
-                                        setValue(
-                                          `grades.${student.examResults.indexOf(result)}.score`,
-                                          Number(value),
-                                        )
-                                      }
-                                      min={0}
-                                      max={10}
-                                      step={0.1}
-                                      decimalScale={1}
-                                      size="sm"
-                                      style={{ width: 100 }}
-                                    />
-                                  ) : (
-                                    <GradeDisplay score={result.scored} />
-                                  )}
-                                </Table.Td>
-                                <Table.Td className="text-sm text-gray-500">
-                                  {new Date(
-                                    result.updatedAt,
-                                  ).toLocaleDateString("vi-VN")}
-                                </Table.Td>
-                              </Table.Tr>
-                            ))}
+                            {classSubjects.map((subject, index) => {
+                              const examResult = student.examResults.find(
+                                (result) => result.subjectId === subject.id,
+                              );
+                              return (
+                                <Table.Tr key={subject.id}>
+                                  <Table.Td>{subject.name}</Table.Td>
+                                  <Table.Td>
+                                    {isEditMode ? (
+                                      <NumberInput
+                                        value={
+                                          watch(`grades.${index}.score`) ??
+                                          undefined
+                                        }
+                                        onChange={(value) =>
+                                          setValue(
+                                            `grades.${index}.score`,
+                                            value !== "" ? Number(value) : null,
+                                          )
+                                        }
+                                        min={0}
+                                        max={10}
+                                        step={0.1}
+                                        decimalScale={1}
+                                        size="sm"
+                                        style={{ width: 100 }}
+                                        placeholder="Nhập điểm"
+                                      />
+                                    ) : examResult ? (
+                                      <GradeDisplay score={examResult.scored} />
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </Table.Td>
+                                  <Table.Td className="text-sm text-gray-500">
+                                    {examResult
+                                      ? new Date(
+                                          examResult.updatedAt,
+                                        ).toLocaleDateString("vi-VN")
+                                      : "-"}
+                                  </Table.Td>
+                                </Table.Tr>
+                              );
+                            })}
                           </Table.Tbody>
                         </Table>
                       </Paper>
                     ) : (
                       <div className="py-8 text-center text-gray-500">
-                        Chưa có điểm nào được ghi nhận
+                        Chưa có môn học nào trong lớp
                       </div>
                     )}
                     {!isEditMode && (
