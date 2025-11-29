@@ -11,26 +11,20 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # - ./init:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+    restart: always
     networks:
       - qlhv_network
 
-  # app:
-  #   build: .
-  #   container_name: qlhv_app
-  #   environment:
-  #     DATABASE_HOST: postgresql
-  #     DATABASE_PORT: 5432
-  #     DATABASE_NAME: qlhv_db
-  #     DATABASE_USER: qlhv_user
-  #     DATABASE_PASSWORD: NNhnr6OizkQM
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - postgresql
-  #   restart: unless-stopped
-  #   networks:
-  #     - qlhv_network
+  app:
+    build: .
+    container_name: qlhv_app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgresql
+    restart: always
+    networks:
+      - qlhv_network
 
 volumes:
   postgres_data:
