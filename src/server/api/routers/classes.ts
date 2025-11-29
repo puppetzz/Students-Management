@@ -7,7 +7,12 @@ import {
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  roleBasedProcedure,
+} from "~/server/api/trpc";
+import { EUserRole } from "~/server/kysely/enums";
 
 const getFinalClassification = (
   scoreClassification: EGradeClassification | null,
@@ -27,7 +32,7 @@ const getFinalClassification = (
 };
 
 export const classesRouter = createTRPCRouter({
-  getAll: publicProcedure
+  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         search: z.string().optional(),
@@ -107,7 +112,7 @@ export const classesRouter = createTRPCRouter({
       };
     }),
 
-  getById: publicProcedure
+  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -124,7 +129,7 @@ export const classesRouter = createTRPCRouter({
       return classes ?? null;
     }),
 
-  create: publicProcedure
+  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         name: z.string(),
@@ -167,7 +172,7 @@ export const classesRouter = createTRPCRouter({
       return createdClass;
     }),
 
-  update: publicProcedure
+  update: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -214,7 +219,10 @@ export const classesRouter = createTRPCRouter({
       return updatedClass;
     }),
 
-  getGradeStatistics: publicProcedure
+  getGradeStatistics: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+  ])
     .input(
       z.object({
         classId: z.number(),
@@ -263,7 +271,7 @@ export const classesRouter = createTRPCRouter({
 
         if (currentClassification) {
           currentClassificationCounts[currentClassification] =
-            (currentClassificationCounts[currentClassification] || 0) + 1;
+            (currentClassificationCounts[currentClassification] ?? 0) + 1;
         }
 
         // Calculate final classification
@@ -276,7 +284,7 @@ export const classesRouter = createTRPCRouter({
 
         if (finalClassification) {
           finalClassificationCounts[finalClassification] =
-            (finalClassificationCounts[finalClassification] || 0) + 1;
+            (finalClassificationCounts[finalClassification] ?? 0) + 1;
         }
       });
 

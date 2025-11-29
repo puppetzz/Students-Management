@@ -6,11 +6,13 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { type EUserRole } from "~/server/kysely/enums";
 
 /**
  * 1. CONTEXT
@@ -25,8 +27,11 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+  const session = await auth();
+
   return {
     db,
+    session,
     ...opts,
   };
 };
@@ -104,3 +109,69 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * are logged in.
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
+
+/**
+ * Protected (authenticated) procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
+ * the session is valid and guarantees `ctx.session.user` is not null.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const protectedProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    return next({
+      ctx: {
+        // infers the `session` as non-nullable
+        session: { ...ctx.session, user: ctx.session.user },
+      },
+    });
+  });
+
+/**
+ * Role-based procedure factory
+ *
+ * Creates a procedure that only allows access to users with specified roles.
+ *
+ * @param allowedRoles - Array of roles that are allowed to access this procedure
+ * @returns A tRPC procedure with role-based authorization
+ *
+ * @example
+ * ```ts
+ * // Only SUPER_ADMIN can access
+ * const deleteProcedure = roleBasedProcedure([EUserRole.SUPER_ADMIN]);
+ *
+ * // Both ADMIN and SUPER_ADMIN can access
+ * const manageProcedure = roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN]);
+ * ```
+ */
+export const roleBasedProcedure = (
+  allowedRoles: Array<(typeof EUserRole)[keyof typeof EUserRole]>,
+) => {
+  return t.procedure.use(timingMiddleware).use(({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    if (
+      !allowedRoles.includes(
+        ctx.session.user.role as (typeof EUserRole)[keyof typeof EUserRole],
+      )
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `Access denied. Required roles: ${allowedRoles.join(", ")}`,
+      });
+    }
+
+    return next({
+      ctx: {
+        session: { ...ctx.session, user: ctx.session.user },
+      },
+    });
+  });
+};

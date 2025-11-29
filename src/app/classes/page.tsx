@@ -24,6 +24,7 @@ import { api } from "~/trpc/react";
 import { parseNumber } from "utils/parseNumber";
 import type { TSubject } from "~/types/subjects";
 import { toast } from "react-toastify";
+import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 import {
   createClassesSchema,
   updateClassesSchema,
@@ -91,6 +92,11 @@ const Classes = () => {
     page: 1,
     pageSize: 1000,
   });
+
+  // Handle errors
+  useTRPCErrorHandler(classesQuery.error);
+  useTRPCErrorHandler(subjectsQuery.error);
+  useTRPCErrorHandler(termQuery.error);
 
   const classUpdateMutation = api.classes.update.useMutation();
   const classCreateMutation = api.classes.create.useMutation();

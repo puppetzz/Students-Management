@@ -2,10 +2,15 @@ import { type Prisma } from "@prisma/client";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  roleBasedProcedure,
+} from "~/server/api/trpc";
+import { EUserRole } from "~/server/kysely/enums";
 
 export const subjectRouter = createTRPCRouter({
-  getAll: publicProcedure
+  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         page: z.number().min(1).default(DEFAULT_PAGE),
@@ -62,7 +67,7 @@ export const subjectRouter = createTRPCRouter({
       };
     }),
 
-  getById: publicProcedure
+  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -79,7 +84,7 @@ export const subjectRouter = createTRPCRouter({
       return subject ?? null;
     }),
 
-  create: publicProcedure
+  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         code: z.string(),
@@ -95,7 +100,7 @@ export const subjectRouter = createTRPCRouter({
       });
     }),
 
-  update: publicProcedure
+  update: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),

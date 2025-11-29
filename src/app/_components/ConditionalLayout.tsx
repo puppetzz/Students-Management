@@ -6,8 +6,10 @@ import { SideBars } from "./sidebars";
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+  const isSignInPage = pathname === "/sign-in";
+  const isForbiddenPage = pathname === "/forbidden";
 
-  if (isHomePage) {
+  if (isHomePage || isSignInPage || isForbiddenPage) {
     return <div className="h-screen">{children}</div>;
   }
 

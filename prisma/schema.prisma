@@ -17,6 +17,19 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+model User {
+    id            String    @id @default(cuid())
+    username      String    @unique
+    passwordHash  String    @map("password_hash")
+    emailVerified DateTime? @map("email_verified")
+    role          EUserRole @default(USER)
+    createdAt     DateTime  @default(now()) @map("created_at")
+    updatedAt     DateTime  @default(now()) @map("updated_at")
+
+    @@index([username])
+    @@map("users")
+}
+
 model Students {
     id                Int       @id @default(autoincrement())
     firstName         String    @map("first_name")
@@ -125,4 +138,10 @@ enum EConduct {
     AVERAGE
     GOOD
     EXCELLENT
+}
+
+enum EUserRole {
+    SUPER_ADMIN
+    ADMIN
+    USER
 }
