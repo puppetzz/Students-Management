@@ -8,6 +8,8 @@ import { TRPCReactProvider } from "~/trpc/react";
 import { createTheme, MantineProvider } from "@mantine/core";
 import { ToastContainer } from "react-toastify";
 import { ConditionalLayout } from "./_components/ConditionalLayout";
+import { SessionProvider } from "next-auth/react";
+import { AuthProvider } from "./_components/providers/auth-provider";
 
 import "@mantine/core/styles.css"; //import Mantine V7 styles needed by MRT
 import "@mantine/dates/styles.css"; //if using mantine date picker features
@@ -34,21 +36,25 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html className={`${geist.variable}`}>
-      <body>
-        <MantineProvider theme={theme}>
-          <DatesProvider
-            settings={{
-              locale: "vi",
-              timezone: "Asia/Ho_Chi_Minh",
-            }}
-          >
-            <TRPCReactProvider>
-              <ConditionalLayout>{children}</ConditionalLayout>
-              <ToastContainer />
-            </TRPCReactProvider>
-          </DatesProvider>
-        </MantineProvider>
+    <html lang="vi" className={`${geist.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <SessionProvider>
+          <MantineProvider theme={theme}>
+            <DatesProvider
+              settings={{
+                locale: "vi",
+                timezone: "Asia/Ho_Chi_Minh",
+              }}
+            >
+              <TRPCReactProvider>
+                <AuthProvider>
+                  <ConditionalLayout>{children}</ConditionalLayout>
+                  <ToastContainer />
+                </AuthProvider>
+              </TRPCReactProvider>
+            </DatesProvider>
+          </MantineProvider>
+        </SessionProvider>
       </body>
     </html>
   );

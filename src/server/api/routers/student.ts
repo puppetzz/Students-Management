@@ -8,7 +8,12 @@ import { sql, type InferResult } from "kysely";
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  roleBasedProcedure,
+} from "~/server/api/trpc";
+import { EUserRole } from "~/server/kysely/enums";
 import { kyselyDB } from "~/server/kysely/db";
 import { env } from "~/env";
 import { deleteFromS3 } from "utils/s3.server";
@@ -31,7 +36,7 @@ const getFinalClassification = (
 };
 
 export const studentRouter = createTRPCRouter({
-  getAll: publicProcedure
+  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         page: z.number().min(1).optional(),
@@ -113,7 +118,7 @@ export const studentRouter = createTRPCRouter({
       };
     }),
 
-  getWithGrades: publicProcedure
+  getWithGrades: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         classId: z.number().optional(),
@@ -200,7 +205,7 @@ export const studentRouter = createTRPCRouter({
       return processedStudentsData;
     }),
 
-  getById: publicProcedure
+  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -246,7 +251,7 @@ export const studentRouter = createTRPCRouter({
       return students ?? null;
     }),
 
-  create: publicProcedure
+  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         firstName: z.string(),
@@ -286,7 +291,7 @@ export const studentRouter = createTRPCRouter({
       });
     }),
 
-  updateInfo: publicProcedure
+  updateInfo: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -341,7 +346,7 @@ export const studentRouter = createTRPCRouter({
       });
     }),
 
-  updateGrades: publicProcedure
+  updateGrades: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -407,7 +412,10 @@ export const studentRouter = createTRPCRouter({
       return;
     }),
 
-  batchUpdateGrades: publicProcedure
+  batchUpdateGrades: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+  ])
     .input(
       z.array(
         z.object({
@@ -551,7 +559,10 @@ export const studentRouter = createTRPCRouter({
       ]);
     }),
 
-  importGradesFromExcel: publicProcedure
+  importGradesFromExcel: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+  ])
     .input(
       z.object({
         classId: z.number(),
@@ -735,7 +746,10 @@ export const studentRouter = createTRPCRouter({
         ),
       ]);
     }),
-  importStudentsFromExcel: publicProcedure
+  importStudentsFromExcel: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+  ])
     .input(
       z.object({
         data: z.array(

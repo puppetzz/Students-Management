@@ -17,6 +17,7 @@ import { parseNumber } from "utils/parseNumber";
 import { toast } from "react-toastify";
 import { createTermSchema, updateTermSchema } from "common/schema/term";
 import type { TCreateTerm, TTerm, TUpdateTerm } from "~/types/terms";
+import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 const Terms = () => {
   const [isViewModal, setIsViewModal] = useState(true);
@@ -65,6 +66,9 @@ const Terms = () => {
       enabled: page > 0,
     },
   );
+
+  // Handle errors
+  useTRPCErrorHandler(termsQuery.error);
 
   const termUpdateMutation = api.term.update.useMutation();
   const termCreateMutation = api.term.create.useMutation();

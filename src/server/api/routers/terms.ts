@@ -2,10 +2,15 @@ import { type Prisma } from "@prisma/client";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  roleBasedProcedure,
+} from "~/server/api/trpc";
+import { EUserRole } from "~/server/kysely/enums";
 
 export const termRouter = createTRPCRouter({
-  getAll: publicProcedure
+  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         search: z.string().optional(),
@@ -50,7 +55,7 @@ export const termRouter = createTRPCRouter({
       };
     }),
 
-  getById: publicProcedure
+  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -67,7 +72,7 @@ export const termRouter = createTRPCRouter({
       return term ?? null;
     }),
 
-  create: publicProcedure
+  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(z.object({ name: z.string(), schoolYear: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.terms.create({
@@ -78,7 +83,7 @@ export const termRouter = createTRPCRouter({
       });
     }),
 
-  update: publicProcedure
+  update: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserSection } from "./_components/UserSection";
 
 export default function Home() {
   const navigationCards = [
@@ -41,6 +42,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* User Section */}
+      <UserSection />
+
       {/* Hero Section with Large Image */}
       <div
         className="relative h-[60vh] min-h-[400px] w-full overflow-hidden bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800"

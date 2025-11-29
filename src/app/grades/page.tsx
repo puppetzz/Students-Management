@@ -20,6 +20,7 @@ import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesM
 import { ImportExcelModal } from "../_components/grades/ImportExcelModal";
 import { ExportGradeButton } from "../_components/grades/ExportGradeButton";
 import { StatisticsModal } from "../_components/grades/StatisticsModal";
+import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 const Grades = () => {
   const searchParams = useSearchParams();
@@ -85,6 +86,12 @@ const Grades = () => {
       enabled: !!classId,
     },
   );
+
+  // Handle errors
+  useTRPCErrorHandler(studentsQuery.error);
+  useTRPCErrorHandler(termsQuery.error);
+  useTRPCErrorHandler(classesQuery.error);
+  useTRPCErrorHandler(subjectsQuery.error);
 
   // Set termId first if missing
   useEffect(() => {

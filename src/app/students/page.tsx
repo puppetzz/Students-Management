@@ -17,9 +17,9 @@ import {
   ViewAndEditModal,
   ImportExcelModal,
 } from "../_components/students";
+import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 import { utils, writeFileXLSX } from "xlsx";
-import { FileUploadButton } from "../_components/upload";
 
 const Students = () => {
   const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(
@@ -76,6 +76,12 @@ const Students = () => {
       enabled: !!classId,
     },
   );
+
+  // Handle errors
+  useTRPCErrorHandler(studentsQuery.error);
+  useTRPCErrorHandler(termsQuery.error);
+  useTRPCErrorHandler(classesQuery.error);
+  useTRPCErrorHandler(subjectsQuery.error);
 
   // Set termId first if missing
   useEffect(() => {

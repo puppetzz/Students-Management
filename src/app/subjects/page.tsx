@@ -24,6 +24,7 @@ import {
   updateSubjectSchema,
 } from "common/schema/subject";
 import { toast } from "react-toastify";
+import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 const Subjects = () => {
   const [isViewModal, setIsViewModal] = useState(true);
@@ -74,6 +75,9 @@ const Subjects = () => {
       enabled: page > 0,
     },
   );
+
+  // Handle errors
+  useTRPCErrorHandler(subjectsQuery.error);
 
   const subjectUpdateMutation = api.subject.update.useMutation();
   const subjectCreateMutation = api.subject.create.useMutation();

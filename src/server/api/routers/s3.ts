@@ -1,15 +1,20 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  roleBasedProcedure,
+} from "~/server/api/trpc";
 import {
   deleteFromS3,
   getPresignedDownloadUrl,
   getPresignedUploadUrl,
 } from "utils/s3.server";
 import { v4 as uuid } from "uuid";
+import { EUserRole } from "@prisma/client";
 
 export const s3Router = createTRPCRouter({
   // Get a presigned URL for direct client-side upload
-  getUploadUrl: publicProcedure
+  getUploadUrl: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         fileName: z.string(),
@@ -32,7 +37,7 @@ export const s3Router = createTRPCRouter({
     }),
 
   // Delete a file from S3
-  deleteFile: publicProcedure
+  deleteFile: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         key: z.string(),
@@ -44,7 +49,7 @@ export const s3Router = createTRPCRouter({
     }),
 
   // Get a presigned download URL
-  getDownloadUrl: publicProcedure
+  getDownloadUrl: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         key: z.string(),
