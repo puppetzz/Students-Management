@@ -8,8 +8,13 @@ import {
   ScrollArea,
   Box,
   Select,
+  Group,
+  Text,
+  rem,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import { Dropzone, type FileWithPath } from "@mantine/dropzone";
+import { IconUpload, IconPhoto, IconX } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { updateStudentSchema } from "common/schema/student";
@@ -18,6 +23,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { api } from "~/trpc/react";
 import type { TUpdateStudent } from "~/types/students";
+import { useUploadImageMutation } from "src/mutations/upload-file.mutation";
+import { ES3Folder } from "common/enums/s3.enum";
 
 type Props = {
   opened: boolean;
@@ -29,6 +36,8 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
   const queryClient = useQueryClient();
   const [selectedTerm, setSelectedTerm] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const {
     register,
@@ -48,8 +57,27 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
         dayOfBirth: data.dayOfBirth ? new Date(data.dayOfBirth) : undefined,
       });
       setSelectedTerm(data.termId ?? null);
+      // Set image preview from existing data
+      if (data.imageUrl) {
+        setImagePreview(String(data.imageUrl));
+      } else {
+        setImagePreview(null);
+      }
+      setImageFile(null);
     }
-  }, [data]);
+  }, [data, reset]);
+
+  // Get the display image - use default in view mode if no image
+  const displayImage = useMemo(() => {
+    if (imagePreview) {
+      return imagePreview;
+    }
+    // Show default image only in view mode when no image is uploaded
+    if (!isEditMode && !imagePreview) {
+      return "/user_profile_default_img.webp";
+    }
+    return null;
+  }, [imagePreview, isEditMode]);
 
   const termsQuery = api.term.getAll.useQuery({});
   const classesQuery = api.classes.getAll.useQuery(
@@ -79,13 +107,43 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
   }, [classesQuery.data]);
 
   const updateStudentMutation = api.student.updateInfo.useMutation();
+  const uploadImageMutation = useUploadImageMutation();
 
-  const onSubmit = (data: TUpdateStudent) => {
+  const handleImageDrop = async (files: FileWithPath[]) => {
+    if (files.length === 0) return;
+
+    const file = files[0];
+    if (!file) return;
+
+    setImageFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageReject = () => {
+    toast.error("Tệp bị từ chối. Vui lòng tải lên ảnh (tối đa 5MB)");
+  };
+
+  const onSubmit = async (data: TUpdateStudent) => {
+    if (imageFile) {
+      const key = await uploadImageMutation.mutateAsync({
+        file: imageFile,
+        folder: ES3Folder.STUDENTS,
+      });
+      data.imageKey = key;
+    }
+
     updateStudentMutation.mutate(
       {
         ...data,
         hometown: data.hometown ?? undefined,
         permanentAddress: data.permanentAddress ?? undefined,
+        imageKey: data.imageKey ?? undefined,
       },
       {
         onSuccess: () => {
@@ -95,13 +153,13 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
             "query",
           );
           void queryClient.invalidateQueries({ queryKey: getStudentsQueryKey });
-          toast.success("Tạo học viên thành công");
+          toast.success("Cập nhật học viên thành công");
           reset();
           onClose();
         },
         onError: (error) => {
-          console.error("Lỗi tạo học viên:", error.shape?.message);
-          toast.error("Lỗi tạo học viên: " + error.shape?.message);
+          console.error("Lỗi cập nhật học viên:", error.shape?.message);
+          toast.error("Lỗi cập nhật học viên: " + error.shape?.message);
         },
       },
     );
@@ -114,6 +172,9 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
 
   const handleClose = () => {
     setIsEditMode(false);
+    setImageFile(null);
+    // Reset image preview to original data
+    setImagePreview(data?.imageUrl ? String(data.imageUrl) : null);
     onClose();
   };
 
@@ -135,68 +196,165 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
           }}
           size="lg"
         >
-          <Box className="flex flex-col">
+          <Box className="flex flex-col" style={{ height: "600px" }}>
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="flex h-full flex-col"
             >
               <ScrollArea className="mb-4 flex-1">
                 <Box pr="md">
-                  <div className="mb-4 flex gap-4">
-                    <TextInput
-                      label="Họ và Tên Đệm"
-                      placeholder="Nhập họ và tên đệm học viên"
-                      {...register("lastName")}
-                      className="flex-1"
-                      required
-                      error={errors.lastName?.message}
-                      readOnly={!isEditMode}
-                      styles={{
-                        input: { cursor: !isEditMode ? "default" : "text" },
-                      }}
-                    />
-                    <TextInput
-                      label="Tên"
-                      placeholder="Nhập họ và tên học viên"
-                      {...register("firstName")}
-                      className="flex-1"
-                      required
-                      error={errors.firstName?.message}
-                      readOnly={!isEditMode}
-                      styles={{
-                        input: { cursor: !isEditMode ? "default" : "text" },
-                      }}
-                    />
+                  <div className="flex">
+                    <div className="mb-4">
+                      <Dropzone
+                        onDrop={handleImageDrop}
+                        onReject={handleImageReject}
+                        maxSize={5 * 1024 * 1024}
+                        accept={[
+                          "image/png",
+                          "image/jpeg",
+                          "image/jpg",
+                          "image/webp",
+                        ]}
+                        style={{
+                          aspectRatio: "3/4",
+                          maxWidth: "220px",
+                          minWidth: "220px",
+                          height: "293px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                        disabled={
+                          !isEditMode ||
+                          uploadImageMutation.isPending ||
+                          updateStudentMutation.isPending
+                        }
+                        loading={
+                          uploadImageMutation.isPending ||
+                          updateStudentMutation.isPending
+                        }
+                      >
+                        {displayImage ? (
+                          <div className="w-full px-2">
+                            <img
+                              src={displayImage}
+                              alt="Student preview"
+                              style={{
+                                maxWidth: "100%",
+                                maxHeight: "261px",
+                                objectFit: "contain",
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <Group
+                            justify="center"
+                            gap="sm"
+                            style={{ pointerEvents: "none", padding: "1rem" }}
+                          >
+                            <Dropzone.Accept>
+                              <IconUpload
+                                style={{
+                                  width: rem(40),
+                                  height: rem(40),
+                                  color: "var(--mantine-color-blue-6)",
+                                }}
+                                stroke={1.5}
+                              />
+                            </Dropzone.Accept>
+                            <Dropzone.Reject>
+                              <IconX
+                                style={{
+                                  width: rem(40),
+                                  height: rem(40),
+                                  color: "var(--mantine-color-red-6)",
+                                }}
+                                stroke={1.5}
+                              />
+                            </Dropzone.Reject>
+                            <Dropzone.Idle>
+                              <IconPhoto
+                                style={{
+                                  width: rem(40),
+                                  height: rem(40),
+                                  color: "var(--mantine-color-dimmed)",
+                                }}
+                                stroke={1.5}
+                              />
+                            </Dropzone.Idle>
+
+                            <div style={{ textAlign: "center" }}>
+                              <Text size="sm" inline>
+                                Kéo thả ảnh hoặc nhấp để chọn
+                              </Text>
+                              <Text size="xs" c="dimmed" inline mt={4}>
+                                tối đa 5MB
+                              </Text>
+                            </div>
+                          </Group>
+                        )}
+                      </Dropzone>
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <div className="mb-4 flex flex-col gap-4">
+                        <TextInput
+                          label="Họ và Tên Đệm"
+                          placeholder="Nhập họ và tên đệm học viên"
+                          {...register("lastName")}
+                          className="flex-1"
+                          required
+                          error={errors.lastName?.message}
+                          readOnly={!isEditMode}
+                          styles={{
+                            input: { cursor: !isEditMode ? "default" : "text" },
+                          }}
+                        />
+                        <TextInput
+                          label="Tên"
+                          placeholder="Nhập họ và tên học viên"
+                          {...register("firstName")}
+                          className="flex-1"
+                          required
+                          error={errors.firstName?.message}
+                          readOnly={!isEditMode}
+                          styles={{
+                            input: { cursor: !isEditMode ? "default" : "text" },
+                          }}
+                        />
+                      </div>
+                      <div className="mb-4 flex flex-col gap-4">
+                        <Select
+                          label="Khóa"
+                          data={termsSelectData}
+                          className="flex-1"
+                          onChange={(value) => {
+                            setSelectedTerm(value ? parseInt(value) : null);
+                          }}
+                          value={selectedTerm?.toString()}
+                          required
+                          allowDeselect={false}
+                          readOnly={!isEditMode}
+                        />
+                        <Select
+                          label="Lớp"
+                          data={classesSelectData}
+                          className="flex-1"
+                          onChange={(value) => {
+                            if (selectedTerm === null) return;
+                            if (!value) return;
+                            setValue("classId", Number(value));
+                          }}
+                          value={watch("classId")?.toString()}
+                          required
+                          error={errors.classId?.message}
+                          allowDeselect={false}
+                          readOnly={!isEditMode}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="mb-4 flex gap-4">
-                    <Select
-                      label="Khóa"
-                      data={termsSelectData}
-                      className="flex-1"
-                      onChange={(value) => {
-                        setSelectedTerm(value ? parseInt(value) : null);
-                      }}
-                      value={selectedTerm?.toString()}
-                      required
-                      allowDeselect={false}
-                      readOnly={!isEditMode}
-                    />
-                    <Select
-                      label="Lớp"
-                      data={classesSelectData}
-                      className="flex-1"
-                      onChange={(value) => {
-                        if (selectedTerm === null) return;
-                        if (!value) return;
-                        setValue("classId", Number(value));
-                      }}
-                      value={watch("classId")?.toString()}
-                      required
-                      error={errors.classId?.message}
-                      allowDeselect={false}
-                      readOnly={!isEditMode}
-                    />
-                  </div>
+
                   <DatePickerInput
                     label="Ngày Sinh"
                     className="mb-4"
@@ -250,7 +408,15 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
               {/* Button Section - Always Visible */}
               <Box className="shrink-0 border-t pt-4">
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" color="red" onClick={handleClose}>
+                  <Button
+                    variant="outline"
+                    color="red"
+                    onClick={handleClose}
+                    disabled={
+                      uploadImageMutation.isPending ||
+                      updateStudentMutation.isPending
+                    }
+                  >
                     Hủy
                   </Button>
                   {!isEditMode ? (
@@ -258,7 +424,18 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                       Chỉnh sửa
                     </Button>
                   ) : (
-                    <Button type="submit" color="green">
+                    <Button
+                      type="submit"
+                      color="green"
+                      disabled={
+                        uploadImageMutation.isPending ||
+                        updateStudentMutation.isPending
+                      }
+                      loading={
+                        uploadImageMutation.isPending ||
+                        updateStudentMutation.isPending
+                      }
+                    >
                       Lưu
                     </Button>
                   )}

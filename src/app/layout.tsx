@@ -34,7 +34,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={`${geist.variable}`}>
+    <html className={`${geist.variable}`}>
       <body>
         <MantineProvider theme={theme}>
           <DatesProvider

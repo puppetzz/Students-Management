@@ -16,6 +16,7 @@ export const createStudentSchema = z.object({
     .string()
     .min(1, "Số căn cước công dân không được để trống")
     .regex(/^\d{12}$/, "Số căn cước công dân phải có 12 chữ số"),
+  imageKey: z.string().optional().nullable(),
 });
 
 export const updateStudentSchema = createStudentSchema.extend({
@@ -42,6 +43,7 @@ export const updateStudentSchema = createStudentSchema.extend({
     .min(1, "Số căn cước công dân không được để trống")
     .regex(/^\d{12,13}$/, "Số căn cước công dân phải có 12 hoặc 13 chữ số"),
   termId: z.number().min(1, "Khóa không hợp lệ").optional(),
+  imageUrl: z.string().nullable().optional(),
 });
 
 export const updateGradesSchema = z.object({

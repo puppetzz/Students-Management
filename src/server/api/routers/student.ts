@@ -10,6 +10,8 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { kyselyDB } from "~/server/kysely/db";
+import { env } from "~/env";
+import { deleteFromS3 } from "utils/s3.server";
 
 const getFinalClassification = (
   scoreClassification: EGradeClassification | null,
@@ -75,6 +77,7 @@ export const studentRouter = createTRPCRouter({
           "students.updated_at as updatedAt",
           "students.hometown as hometown",
           "students.permanent_address as permanentAddress",
+          "students.image_key as imageKey",
         ])
         .$if(!!take, (qb) => qb.limit(take!))
         .$if(!!skip, (qb) => qb.offset(skip!))
@@ -97,8 +100,15 @@ export const studentRouter = createTRPCRouter({
         ),
       ]);
 
+      const studentsRes = students.map((student) => ({
+        ...student,
+        imageUrl: student.imageKey
+          ? `${env.AWS_S3_BUCKET_URL}/${student.imageKey}`
+          : null,
+      }));
+
       return {
-        data: students,
+        data: studentsRes,
         total: totalRecords[0]?.count ?? 0,
       };
     }),
@@ -137,6 +147,7 @@ export const studentRouter = createTRPCRouter({
           "students.avg_scored_subjects as avgScoredSubjects",
           "students.conduct as conduct",
           "students.class_id as classId",
+          "students.image_key as imageKey",
           sql`MAX(classes.term_id)`.as("termId"),
           sql<
             Array<{
@@ -180,6 +191,9 @@ export const studentRouter = createTRPCRouter({
           ...student,
           currentClassification,
           finalClassification,
+          imageUrl: student.imageKey
+            ? `${env.AWS_S3_BUCKET_URL}/${student.imageKey}`
+            : null,
         };
       });
 
@@ -247,6 +261,7 @@ export const studentRouter = createTRPCRouter({
         conduct: z
           .enum(Object.values(EConduct) as [string, ...string[]])
           .optional(),
+        imageKey: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -288,16 +303,41 @@ export const studentRouter = createTRPCRouter({
           .string()
           .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số")
           .optional(),
+        imageKey: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
+      const { id, imageKey, ...data } = input;
+
+      // If imageKey is being updated, delete the old image from S3
+      if (imageKey !== undefined) {
+        const existingStudent = await ctx.db.students.findUnique({
+          where: { id },
+          select: { imageKey: true },
+        });
+
+        // Delete old image if it exists and is different from the new one
+        if (
+          existingStudent?.imageKey &&
+          existingStudent.imageKey !== imageKey
+        ) {
+          try {
+            await deleteFromS3(existingStudent.imageKey);
+          } catch (error) {
+            console.error("Failed to delete old image from S3:", error);
+            // Continue with update even if deletion fails
+          }
+        }
+      }
 
       return ctx.db.students.update({
         where: {
           id,
         },
-        data,
+        data: {
+          ...data,
+          ...(imageKey !== undefined && { imageKey }),
+        },
       });
     }),
 

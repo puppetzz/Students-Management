@@ -19,6 +19,7 @@ import {
 } from "../_components/students";
 
 import { utils, writeFileXLSX } from "xlsx";
+import { FileUploadButton } from "../_components/upload";
 
 const Students = () => {
   const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(

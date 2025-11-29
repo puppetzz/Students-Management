@@ -28,6 +28,7 @@ export type TStudent = {
 export type TStudentInfoResponse = TStudent & {
   hometown: string | null;
   permanentAddress: string | null;
+  imageUrl: string | null;
 };
 
 export type TStudentWithGradesResponse = TStudent & {
@@ -70,6 +71,7 @@ export type TStudentGradesResponse = {
   conduct: EConduct | null;
   classId: number;
   termId: unknown;
+  imageUrl: string | null;
   examResults: TExamResults[];
   currentClassification: EGradeClassification | null;
   finalClassification: EGradeClassification | null;

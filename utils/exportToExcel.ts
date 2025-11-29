@@ -10,7 +10,7 @@ import {
   type EGradeClassification,
 } from "common/constants/students";
 import type { EConduct } from "@prisma/client";
-import type { TExamResults } from "../src/types/students";
+import type { TExamResults } from "~/types/students";
 
 // Use the actual type from the API response
 export interface StudentGradeExportData {
