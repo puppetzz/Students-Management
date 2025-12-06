@@ -16,6 +16,7 @@ export const env = createEnv({
     AWS_S3_BUCKET_NAME: z.string().min(1),
     AWS_REGION: z.string().default("ap-southeast-1"),
     AWS_S3_BUCKET_URL: z.string().url(),
+    API_KEY: z.string().min(1).optional(),
   },
 
   /**
@@ -39,6 +40,7 @@ export const env = createEnv({
     AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
     AWS_REGION: process.env.AWS_REGION,
     AWS_S3_BUCKET_URL: process.env.AWS_S3_BUCKET_URL,
+    API_KEY: process.env.API_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

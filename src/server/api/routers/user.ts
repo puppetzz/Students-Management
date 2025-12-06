@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  apiKeyProcedure,
   createTRPCRouter,
   protectedProcedure,
   roleBasedProcedure,
@@ -7,6 +8,7 @@ import {
 import { hashPassword, verifyPassword } from "utils/password";
 import { TRPCError } from "@trpc/server";
 import { EUserRole } from "~/server/kysely/enums";
+import { generatePassword } from "~/utils/generatePassword";
 
 export const userRouter = createTRPCRouter({
   create: roleBasedProcedure([EUserRole.SUPER_ADMIN])
@@ -259,4 +261,28 @@ export const userRouter = createTRPCRouter({
         success: true,
       };
     }),
+  generateAdmin: apiKeyProcedure.mutation(async ({ ctx }) => {
+    const existingAdmin = await ctx.db.user.findFirst({
+      where: { role: EUserRole.SUPER_ADMIN },
+    });
+    if (existingAdmin) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "SUPER_ADMIN already exists",
+      });
+    }
+    const password = generatePassword(8);
+    const hash = await hashPassword(password);
+    const user = await ctx.db.user.create({
+      data: {
+        username: "superadmin",
+        passwordHash: hash,
+        role: EUserRole.SUPER_ADMIN,
+      },
+      select: {
+        username: true,
+      },
+    });
+    return { username: user.username, password };
+  }),
 });

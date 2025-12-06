@@ -9,6 +9,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { timingSafeEqual } from "crypto";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
@@ -175,3 +176,94 @@ export const roleBasedProcedure = (
     });
   });
 };
+
+/**
+ * API Key-based procedure
+ *
+ * This procedure authenticates requests using an API key from the request headers.
+ * Use this for server-to-server communication or external API integrations.
+ *
+ * The API key should be passed in the `x-api-key` header.
+ *
+ * Security features:
+ * - Uses constant-time comparison to prevent timing attacks
+ * - Validates key length to prevent buffer comparison issues
+ * - Rate limiting should be implemented at the infrastructure level
+ *
+ * @example
+ * ```ts
+ * // In your router
+ * export const externalRouter = createTRPCRouter({
+ *   getData: apiKeyProcedure
+ *     .input(z.object({ id: z.string() }))
+ *     .query(({ input }) => {
+ *       return { data: "some data" };
+ *     }),
+ * });
+ * ```
+ *
+ * @example
+ * ```bash
+ * # Making a request with API key
+ * curl -H "x-api-key: your-api-key" https://your-api.com/api/trpc/external.getData
+ * ```
+ */
+export const apiKeyProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    const apiKey = ctx.headers.get("x-api-key");
+
+    if (!apiKey) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "API key is required",
+      });
+    }
+
+    // Validate API key against environment variable
+    const validApiKey = process.env.API_KEY;
+
+    if (!validApiKey) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "API key not configured on server",
+      });
+    }
+
+    // Use constant-time comparison to prevent timing attacks
+    try {
+      const apiKeyBuffer = Buffer.from(apiKey, "utf8");
+      const validApiKeyBuffer = Buffer.from(validApiKey, "utf8");
+
+      // Ensure both keys have the same length before comparison
+      if (apiKeyBuffer.length !== validApiKeyBuffer.length) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid API key",
+        });
+      }
+
+      // Constant-time comparison
+      const isValid = timingSafeEqual(apiKeyBuffer, validApiKeyBuffer);
+
+      if (!isValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid API key",
+        });
+      }
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+      // Handle any other errors (e.g., buffer creation errors)
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid API key",
+      });
+    }
+
+    return next({
+      ctx,
+    });
+  });
