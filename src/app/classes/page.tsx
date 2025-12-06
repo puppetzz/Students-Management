@@ -141,6 +141,13 @@ const Classes = () => {
         header: "Tên Lớp",
       },
       {
+        accessorKey: "term",
+        header: "Khóa",
+        Cell: ({ row }) => {
+          return <span>{row.original.term?.name ?? "N/A"}</span>;
+        },
+      },
+      {
         accessorKey: "description",
         header: "Mô Tả",
       },

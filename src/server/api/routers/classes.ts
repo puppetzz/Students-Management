@@ -7,11 +7,7 @@ import {
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  roleBasedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, roleBasedProcedure } from "~/server/api/trpc";
 import { EUserRole } from "~/server/kysely/enums";
 
 const getFinalClassification = (
