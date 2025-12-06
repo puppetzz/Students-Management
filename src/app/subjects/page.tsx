@@ -12,10 +12,16 @@ import {
   NumberInput,
   Pagination,
   TextInput,
+  Table,
+  Group,
+  Text,
+  Stack,
+  ActionIcon,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconTrash, IconPlus } from "@tabler/icons-react";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
@@ -24,6 +30,7 @@ import type {
   TCreateSubject,
   TSubject,
   TUpdateSubject,
+  TSubjectMaterial,
 } from "~/types/subjects";
 import {
   createSubjectSchema,
@@ -34,12 +41,20 @@ import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 const Subjects = () => {
   const [isViewModal, setIsViewModal] = useState(true);
+  const [selectedMaterials, setSelectedMaterials] = useState<
+    TSubjectMaterial[] | null
+  >(null);
+  const [selectedSubjectName, setSelectedSubjectName] = useState<string>("");
 
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
     useDisclosure(false);
   const [
     createModalOpened,
     { open: openCreateModal, close: closeCreateModal },
+  ] = useDisclosure(false);
+  const [
+    materialModalOpened,
+    { open: openMaterialModal, close: closeMaterialModal },
   ] = useDisclosure(false);
   const {
     register: registerEdit,
@@ -49,7 +64,20 @@ const Subjects = () => {
     control: controlEdit,
   } = useForm({
     resolver: zodResolver(updateSubjectSchema),
+    defaultValues: {
+      materials: [],
+    },
   });
+
+  const {
+    fields: editMaterialFields,
+    append: appendEditMaterial,
+    remove: removeEditMaterial,
+  } = useFieldArray({
+    control: controlEdit,
+    name: "materials",
+  });
+
   const {
     register: registerCreate,
     handleSubmit: handleSubmitCreate,
@@ -58,6 +86,18 @@ const Subjects = () => {
     control: controlCreate,
   } = useForm({
     resolver: zodResolver(createSubjectSchema),
+    defaultValues: {
+      materials: [],
+    },
+  });
+
+  const {
+    fields: createMaterialFields,
+    append: appendCreateMaterial,
+    remove: removeCreateMaterial,
+  } = useFieldArray({
+    control: controlCreate,
+    name: "materials",
   });
 
   const searchParams = useSearchParams();
@@ -91,7 +131,7 @@ const Subjects = () => {
   const subjectCreateMutation = api.subject.create.useMutation();
 
   const handleOpenViewModal = (data: TUpdateSubject) => {
-    const { id, name, description, code, scoreCoefficient } = data;
+    const { id, name, description, code, scoreCoefficient, materials } = data;
 
     resetEdit({
       id: id,
@@ -99,6 +139,7 @@ const Subjects = () => {
       code: code,
       scoreCoefficient: scoreCoefficient,
       description: description,
+      materials: materials ?? [],
     });
 
     setIsViewModal(true);
@@ -134,8 +175,35 @@ const Subjects = () => {
         accessorKey: "description",
         header: "Mô Tả",
       },
+      {
+        accessorKey: "material",
+        header: "Vật chất",
+        Cell: ({ cell }) => {
+          const materials = cell.getValue<TSubject["material"]>();
+          const subjectName = cell.row.original.name;
+
+          if (!materials || materials.length === 0) {
+            return <span className="text-gray-500">Không có vật chất</span>;
+          }
+
+          return (
+            <Button
+              size="xs"
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedMaterials(materials);
+                setSelectedSubjectName(subjectName);
+                openMaterialModal();
+              }}
+            >
+              Xem Vật Chất ({materials.length})
+            </Button>
+          );
+        },
+      },
     ],
-    [pageSize, page],
+    [pageSize, page, openMaterialModal],
   );
 
   const subjectsData = useMemo(() => {
@@ -151,7 +219,8 @@ const Subjects = () => {
     },
     mantineTableBodyRowProps: ({ row }) => ({
       onClick: () => {
-        const { id, name, description, code, scoreCoefficient } = row.original;
+        const { id, name, description, code, scoreCoefficient, material } =
+          row.original;
 
         handleOpenViewModal({
           id,
@@ -159,6 +228,7 @@ const Subjects = () => {
           description,
           code,
           scoreCoefficient,
+          materials: material ?? [],
         });
       },
     }),
@@ -168,6 +238,7 @@ const Subjects = () => {
     enableColumnActions: false,
     enableColumnFilters: false,
     enableSorting: false,
+    enableStickyHeader: true,
   });
 
   const onSubmitUpdateForm = useCallback(
@@ -179,6 +250,10 @@ const Subjects = () => {
           description: data.description ?? undefined,
           code: data.code,
           scoreCoefficient: data.scoreCoefficient,
+          material:
+            data.materials && data.materials.length > 0
+              ? data.materials
+              : undefined,
         },
         {
           onSuccess: () => {
@@ -200,6 +275,10 @@ const Subjects = () => {
           description: data.description ?? undefined,
           code: data.code,
           scoreCoefficient: data.scoreCoefficient,
+          material:
+            data.materials && data.materials.length > 0
+              ? data.materials
+              : undefined,
         },
         {
           onSuccess: () => {
@@ -226,13 +305,19 @@ const Subjects = () => {
             opacity: 0.5,
           }}
         />
-        <div className="mb-5 flex items-center justify-between py-2">
-          <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
-          <h1 className="text-3xl font-bold">Quản Lý Môn Học</h1>
+        <div className="mb-5 flex flex-col items-center justify-center gap-2 py-2 sm:flex-row sm:justify-between">
+          <img
+            src="/CB.png"
+            alt="Logo"
+            className="left-4 h-12 w-12 sm:h-16 sm:w-16"
+          />
+          <h1 className="text-center text-2xl font-bold sm:text-3xl">
+            Quản Lý Môn Học
+          </h1>
           <img
             src="/TQSQK5.png"
             alt="Logo"
-            className="top-0 right-4 h-16 w-16"
+            className="top-0 right-4 h-12 w-12 sm:h-16 sm:w-16"
           />
         </div>
 
@@ -240,8 +325,8 @@ const Subjects = () => {
           <Button onClick={handleOpenCreateModal}>Thêm Môn Học</Button>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div>
+        <div className="flex flex-col gap-2 overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto">
             <MantineReactTable table={table} />
           </div>
           <div className="flex justify-center">
@@ -269,6 +354,8 @@ const Subjects = () => {
         styles={{
           title: { fontWeight: "bold" },
         }}
+        size="xl"
+        fullScreen={typeof window !== "undefined" && window.innerWidth < 768}
       >
         <form onSubmit={handleSubmitEdit(onSubmitUpdateForm)}>
           <TextInput
@@ -326,8 +413,156 @@ const Subjects = () => {
               },
             }}
           />
-          <div className="flex justify-end">
-            <div className="mt-2 flex gap-2">
+
+          {/* Materials Section */}
+          <div className="mt-6 border-t pt-6">
+            <Text fw={500} size="lg" className="mb-4">
+              Vật Chất
+            </Text>
+
+            {editMaterialFields.length > 0 ? (
+              isViewModal ? (
+                <div className="overflow-x-auto">
+                  <Table striped highlightOnHover>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>TT</Table.Th>
+                        <Table.Th>Tên Vật Chất</Table.Th>
+                        <Table.Th ta="center">Đơn Vị</Table.Th>
+                        <Table.Th ta="center">Số Lượng</Table.Th>
+                        <Table.Th>Ghi Chú</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {editMaterialFields.map((field, index) => (
+                        <Table.Tr key={field.id}>
+                          <Table.Td>{index + 1}</Table.Td>
+                          <Table.Td>
+                            <Text size="sm" fw={500}>
+                              {editMaterialFields[index]?.name}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td className="text-center">
+                            {!!editMaterialFields[index]?.unit
+                              ? editMaterialFields[index]?.unit
+                              : "-"}
+                          </Table.Td>
+                          <Table.Td className="text-center">
+                            <Text size="sm">
+                              {editMaterialFields[index]?.amount}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td style={{ whiteSpace: "normal" }}>
+                            <Text
+                              size="sm"
+                              fw={500}
+                              c="dimmed"
+                              style={{ whiteSpace: "normal" }}
+                            >
+                              {editMaterialFields[index]?.note}
+                            </Text>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </div>
+              ) : (
+                <Stack gap="md">
+                  {editMaterialFields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="rounded-md border border-gray-200 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <Text fw={500} size="sm">
+                          Vật Chất {index + 1}
+                        </Text>
+                        <ActionIcon
+                          color="red"
+                          variant="light"
+                          size="sm"
+                          onClick={() => removeEditMaterial(index)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                        <div className="col-span-1 sm:col-span-5">
+                          <TextInput
+                            label="Tên Vật Chất"
+                            placeholder="Nhập tên vật chất"
+                            {...registerEdit(`materials.${index}.name`)}
+                            error={
+                              editFormErrors.materials?.[index]?.name?.message
+                            }
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <TextInput
+                            label="Đơn Vị"
+                            placeholder="Ví dụ: cái"
+                            {...registerEdit(`materials.${index}.unit`)}
+                            error={
+                              editFormErrors.materials?.[index]?.unit?.message
+                            }
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <TextInput
+                            label="Số Lượng"
+                            placeholder="Số lượng"
+                            {...registerEdit(`materials.${index}.amount`)}
+                            error={
+                              editFormErrors.materials?.[index]?.amount?.message
+                            }
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-3">
+                          <TextInput
+                            label="Ghi Chú"
+                            placeholder="Ghi chú"
+                            {...registerEdit(`materials.${index}.note`)}
+                            error={
+                              editFormErrors.materials?.[index]?.note?.message
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </Stack>
+              )
+            ) : (
+              <Text c="dimmed" size="sm" className="mb-4">
+                {isViewModal
+                  ? "Không có vật chất nào"
+                  : "Nhấp vào 'Thêm Vật Chất' để thêm vật chất mới"}
+              </Text>
+            )}
+
+            {!isViewModal && (
+              <Button
+                size="xs"
+                leftSection={<IconPlus size={16} />}
+                onClick={() =>
+                  appendEditMaterial({
+                    name: "",
+                    unit: "",
+                    amount: "",
+                    note: "",
+                  })
+                }
+                className="mt-4"
+              >
+                Thêm Vật Chất
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <div className="mt-6 flex w-full gap-2 sm:w-auto">
               {isViewModal ? (
                 <Button
                   type="button"
@@ -335,13 +570,20 @@ const Subjects = () => {
                     e.preventDefault();
                     setIsViewModal(false);
                   }}
+                  className="flex-1 sm:flex-none"
                 >
                   Chỉnh Sửa
                 </Button>
               ) : (
-                <Button type="submit">Xác Nhận</Button>
+                <Button type="submit" className="flex-1 sm:flex-none">
+                  Xác Nhận
+                </Button>
               )}
-              <Button color="red" onClick={closeViewModal}>
+              <Button
+                color="red"
+                onClick={closeViewModal}
+                className="flex-1 sm:flex-none"
+              >
                 Hủy
               </Button>
             </div>
@@ -358,6 +600,8 @@ const Subjects = () => {
             fontWeight: "bold",
           },
         }}
+        size="xl"
+        fullScreen={typeof window !== "undefined" && window.innerWidth < 768}
       >
         <form
           onSubmit={handleSubmitCreate(onSubmitCreateForm)}
@@ -400,15 +644,178 @@ const Subjects = () => {
             error={createFormErrors.description?.message}
             required
           />
-          <div className="flex justify-end">
-            <div className="mt-2 flex gap-2">
-              <Button type="submit">Xác Nhận</Button>
-              <Button color="red" onClick={closeCreateModal}>
+
+          {/* Materials Section */}
+          <div className="mt-6 border-t pt-6">
+            <Text fw={500} size="lg" className="mb-4">
+              Vật Chất
+            </Text>
+
+            {createMaterialFields.length > 0 ? (
+              <Stack gap="md">
+                {createMaterialFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="rounded-md border border-gray-200 p-4"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <Text fw={500} size="sm">
+                        Vật Liệu {index + 1}
+                      </Text>
+                      <ActionIcon
+                        color="red"
+                        variant="light"
+                        size="sm"
+                        onClick={() => removeCreateMaterial(index)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                      <div className="col-span-1 sm:col-span-4">
+                        <TextInput
+                          label="Tên Vật Chất"
+                          placeholder="Nhập tên vật chất"
+                          {...registerCreate(`materials.${index}.name`)}
+                          error={
+                            createFormErrors.materials?.[index]?.name?.message
+                          }
+                        />
+                      </div>
+                      <div className="col-span-1 sm:col-span-3">
+                        <TextInput
+                          label="Đơn Vị"
+                          placeholder="Ví dụ: cái"
+                          {...registerCreate(`materials.${index}.unit`)}
+                          error={
+                            createFormErrors.materials?.[index]?.unit?.message
+                          }
+                        />
+                      </div>
+                      <div className="col-span-1 sm:col-span-2">
+                        <TextInput
+                          label="Số Lượng"
+                          placeholder="Số lượng"
+                          {...registerCreate(`materials.${index}.amount`)}
+                          error={
+                            createFormErrors.materials?.[index]?.amount?.message
+                          }
+                        />
+                      </div>
+                      <div className="col-span-1 sm:col-span-3">
+                        <TextInput
+                          label="Ghi Chú"
+                          placeholder="Ghi chú"
+                          {...registerCreate(`materials.${index}.note`)}
+                          error={
+                            createFormErrors.materials?.[index]?.note?.message
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </Stack>
+            ) : (
+              <Text c="dimmed" size="sm" className="mb-4">
+                Nhấp vào {"Thêm Vật Chất"} để thêm vật chất mới
+              </Text>
+            )}
+
+            <Button
+              size="xs"
+              leftSection={<IconPlus size={16} />}
+              onClick={() =>
+                appendCreateMaterial({
+                  name: "",
+                  unit: "",
+                  amount: "",
+                  note: "",
+                })
+              }
+              className="mt-4"
+            >
+              Thêm Vật Chất
+            </Button>
+          </div>
+
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <div className="mt-6 flex w-full gap-2 sm:w-auto">
+              <Button type="submit" className="flex-1 sm:flex-none">
+                Xác Nhận
+              </Button>
+              <Button
+                color="red"
+                onClick={closeCreateModal}
+                className="flex-1 sm:flex-none"
+              >
                 Hủy
               </Button>
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        opened={materialModalOpened}
+        onClose={closeMaterialModal}
+        title={`Vật Chất - ${selectedSubjectName}`}
+        styles={{
+          title: { fontWeight: "bold" },
+        }}
+        size="xl"
+        fullScreen={typeof window !== "undefined" && window.innerWidth < 768}
+      >
+        {selectedMaterials && selectedMaterials.length > 0 ? (
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>TT</Table.Th>
+                    <Table.Th>Tên Vật Chất</Table.Th>
+                    <Table.Th ta="center">Đơn Vị</Table.Th>
+                    <Table.Th ta="center">Số Lượng</Table.Th>
+                    <Table.Th>Ghi Chú</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {selectedMaterials.map((material, index) => (
+                    <Table.Tr key={index}>
+                      <Table.Td>
+                        <Text fw={500}>{index + 1}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text fw={500}>{material.name}</Text>
+                      </Table.Td>
+                      <Table.Td className="text-center">
+                        {!!material.unit ? material.unit : "-"}
+                      </Table.Td>
+                      <Table.Td className="text-center">
+                        <Text>{material.amount}</Text>
+                      </Table.Td>
+                      <Table.Td style={{ whiteSpace: "normal" }}>
+                        <Text
+                          size="sm"
+                          c="dimmed"
+                          style={{ whiteSpace: "normal" }}
+                        >
+                          {material.note ?? "-"}
+                        </Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <Text c="dimmed">Không có dữ liệu vật chất</Text>
+        )}
+        <Group justify="flex-end" mt="md">
+          <Button onClick={closeMaterialModal}>Đóng</Button>
+        </Group>
       </Modal>
     </>
   );

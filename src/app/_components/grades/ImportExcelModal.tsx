@@ -65,7 +65,7 @@ export const ImportExcelModal = ({
       enabled: !!termId,
     },
   );
-  const subjectsQuery = api.subject.getAll.useQuery({
+  const subjectsQuery = api.subject.getOptions.useQuery({
     page: 1,
     pageSize: 1000,
   });

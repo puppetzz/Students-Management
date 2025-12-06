@@ -83,10 +83,7 @@ const Classes = () => {
     },
   );
 
-  const subjectsQuery = api.subject.getAll.useQuery({
-    page: 1,
-    pageSize: 1000,
-  });
+  const subjectsQuery = api.subject.getOptions.useQuery({});
 
   const termQuery = api.term.getAll.useQuery({
     page: 1,
@@ -232,10 +229,12 @@ const Classes = () => {
 
   const subjectsMultiSelectData = useMemo(() => {
     return (
-      subjectsQuery.data?.data.map((subject: TSubject) => ({
-        value: subject.id.toString(),
-        label: subject.name,
-      })) ?? []
+      subjectsQuery.data?.data.map(
+        (subject: Pick<TSubject, "id" | "name" | "code">) => ({
+          value: subject.id.toString(),
+          label: subject.name,
+        }),
+      ) ?? []
     );
   }, [subjectsQuery.data?.data]);
 

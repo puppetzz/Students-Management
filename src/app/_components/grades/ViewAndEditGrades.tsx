@@ -33,7 +33,7 @@ type Props = {
         termName: string;
       })
     | null;
-  classSubjects?: TSubject[];
+  classSubjects?: Pick<TSubject, "id" | "name" | "code">[];
 };
 
 export const ViewAndEditGrades = ({

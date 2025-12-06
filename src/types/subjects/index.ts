@@ -10,6 +10,7 @@ export type TSubject = {
   name: string;
   scoreCoefficient: number;
   description: string | null;
+  material: TSubjectMaterial[] | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -22,4 +23,11 @@ export type TSubjectForClass = {
   code: string;
   name: string;
   scoreCoefficient: number;
+};
+
+export type TSubjectMaterial = {
+  name: string;
+  unit?: string;
+  amount: string;
+  note?: string;
 };

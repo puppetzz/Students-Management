@@ -1,11 +1,79 @@
 import { type Prisma } from "@prisma/client";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
+import { sql } from "node_modules/kysely/dist/esm/raw-builder/sql";
 import { z } from "zod";
 
 import { createTRPCRouter, roleBasedProcedure } from "~/server/api/trpc";
+import { kyselyDB } from "~/server/kysely/db";
 import { EUserRole } from "~/server/kysely/enums";
+import type { TSubject, TSubjectMaterial } from "~/types/subjects";
 
 export const subjectRouter = createTRPCRouter({
+  // Lightweight API for select boxes - returns only id and name
+  getOptions: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        page: z.number().min(1).optional(),
+        pageSize: z.number().min(1).optional(),
+        search: z.string().optional(),
+        classId: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { page, pageSize, search, classId } = input;
+
+      const where: Prisma.SubjectsWhereInput = {
+        ...(search
+          ? {
+              name: {
+                contains: search,
+                mode: "insensitive",
+              },
+            }
+          : {}),
+        ...(classId
+          ? {
+              classSubjects: {
+                some: {
+                  classId: classId,
+                },
+              },
+            }
+          : {}),
+      };
+
+      const [subjects, totalRecords] = await Promise.all([
+        ctx.db.subjects.findMany({
+          where,
+          orderBy: { name: "asc" },
+          ...(page && pageSize
+            ? {
+                skip: pageSize * (page - 1),
+                take: pageSize,
+              }
+            : {}),
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            scoreCoefficient: true,
+          },
+        }),
+        ctx.db.subjects.count({
+          where,
+          select: {
+            id: true,
+          },
+        }),
+      ]);
+
+      return {
+        data: subjects,
+        total: totalRecords.id,
+      };
+    }),
+
+  // Full API for displaying subjects on screen with pagination
   getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
@@ -41,13 +109,37 @@ export const subjectRouter = createTRPCRouter({
           : {}),
       };
 
+      const subjectQueryCompiled = kyselyDB
+        .selectFrom("subjects")
+        .select([
+          "id",
+          "code",
+          "name",
+          "score_coefficient as scoreCoefficient",
+          "description",
+        ])
+        .select(sql<TSubjectMaterial[]>`material`.as("material"))
+        .$if(!!search, (qb) => qb.where("name", "ilike", `%${search}%`))
+        .$if(!!classId, (qb) =>
+          qb.where((sqb) =>
+            sqb.exists(
+              sqb
+                .selectFrom("class_subjects")
+                .whereRef("class_subjects.subject_id", "=", "subjects.id")
+                .where("class_subjects.class_id", "=", classId!),
+            ),
+          ),
+        )
+        .offset(skip)
+        .limit(take)
+        .orderBy("name", "asc")
+        .compile();
+
       const [subjects, totalRecords] = await Promise.all([
-        ctx.db.subjects.findMany({
-          where,
-          orderBy: { name: "asc" },
-          skip,
-          take,
-        }),
+        ctx.db.$queryRawUnsafe<TSubject[]>(
+          subjectQueryCompiled.sql,
+          ...subjectQueryCompiled.parameters,
+        ),
 
         ctx.db.subjects.count({
           where,
@@ -87,6 +179,16 @@ export const subjectRouter = createTRPCRouter({
         name: z.string(),
         description: z.string().optional(),
         scoreCoefficient: z.number().min(1).default(1),
+        material: z
+          .array(
+            z.object({
+              name: z.string(),
+              unit: z.string().optional(),
+              amount: z.string(),
+              note: z.string().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -105,10 +207,20 @@ export const subjectRouter = createTRPCRouter({
         name: z.string(),
         description: z.string().optional(),
         scoreCoefficient: z.number().min(1).default(1),
+        material: z
+          .array(
+            z.object({
+              name: z.string(),
+              unit: z.string().optional(),
+              amount: z.string(),
+              note: z.string().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, name, description, code, scoreCoefficient } = input;
+      const { id, name, description, code, scoreCoefficient, material } = input;
       return ctx.db.subjects.update({
         where: {
           id,
@@ -118,6 +230,7 @@ export const subjectRouter = createTRPCRouter({
           code: code,
           description: description,
           scoreCoefficient: scoreCoefficient,
+          material: material ?? undefined,
           updatedAt: new Date(),
         },
       });

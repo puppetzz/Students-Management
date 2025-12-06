@@ -66,10 +66,8 @@ const Students = () => {
     pageSize: 1000,
     termId: termId ? Number(termId) : undefined,
   });
-  const subjectsQuery = api.subject.getAll.useQuery(
+  const subjectsQuery = api.subject.getOptions.useQuery(
     {
-      page: 1,
-      pageSize: 1000,
       classId: classId ? Number(classId) : undefined,
     },
     {
