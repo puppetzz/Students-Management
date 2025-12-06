@@ -305,10 +305,27 @@ async function main() {
   for (const student of allStudents) {
     const results = await prisma.examResults.findMany({
       where: { studentId: student.id },
+      include: {
+        subject: {
+          select: {
+            scoreCoefficient: true,
+          },
+        },
+      },
     });
 
+    // Calculate weighted average using subject coefficients
+    const totalWeighted = results.reduce(
+      (sum, result) => sum + result.scored * result.subject.scoreCoefficient,
+      0,
+    );
+    const totalCoefficient = results.reduce(
+      (sum, result) => sum + result.subject.scoreCoefficient,
+      0,
+    );
+
     const avgScoredSubjects =
-      results.reduce((sum, result) => sum + result.scored, 0) / results.length;
+      totalCoefficient > 0 ? totalWeighted / totalCoefficient : 0;
 
     await prisma.students.update({
       where: { id: student.id },

@@ -6,9 +6,15 @@ import {
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { Button, Modal, Pagination, TextInput } from "@mantine/core";
+import {
+  Button,
+  Modal,
+  NumberInput,
+  Pagination,
+  TextInput,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
@@ -40,6 +46,7 @@ const Subjects = () => {
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
     formState: { errors: editFormErrors },
+    control: controlEdit,
   } = useForm({
     resolver: zodResolver(updateSubjectSchema),
   });
@@ -48,6 +55,7 @@ const Subjects = () => {
     handleSubmit: handleSubmitCreate,
     reset: resetCreate,
     formState: { errors: createFormErrors },
+    control: controlCreate,
   } = useForm({
     resolver: zodResolver(createSubjectSchema),
   });
@@ -83,12 +91,13 @@ const Subjects = () => {
   const subjectCreateMutation = api.subject.create.useMutation();
 
   const handleOpenViewModal = (data: TUpdateSubject) => {
-    const { id, name, description, code } = data;
+    const { id, name, description, code, scoreCoefficient } = data;
 
     resetEdit({
       id: id,
       name: name,
       code: code,
+      scoreCoefficient: scoreCoefficient,
       description: description,
     });
 
@@ -118,6 +127,10 @@ const Subjects = () => {
         header: "Mã Môn Học",
       },
       {
+        accessorKey: "scoreCoefficient",
+        header: "Hệ Số Điểm",
+      },
+      {
         accessorKey: "description",
         header: "Mô Tả",
       },
@@ -134,17 +147,18 @@ const Subjects = () => {
     data: subjectsData,
     state: {
       isLoading: subjectsQuery.isFetching,
-      columnOrder: ["STT", "name", "code", "description"],
+      columnOrder: ["STT", "name", "code", "scoreCoefficient", "description"],
     },
     mantineTableBodyRowProps: ({ row }) => ({
       onClick: () => {
-        const { id, name, description, code } = row.original;
+        const { id, name, description, code, scoreCoefficient } = row.original;
 
         handleOpenViewModal({
           id,
           name,
           description,
           code,
+          scoreCoefficient,
         });
       },
     }),
@@ -164,6 +178,7 @@ const Subjects = () => {
           name: data.name,
           description: data.description ?? undefined,
           code: data.code,
+          scoreCoefficient: data.scoreCoefficient,
         },
         {
           onSuccess: () => {
@@ -184,6 +199,7 @@ const Subjects = () => {
           name: data.name,
           description: data.description ?? undefined,
           code: data.code,
+          scoreCoefficient: data.scoreCoefficient,
         },
         {
           onSuccess: () => {
@@ -278,6 +294,27 @@ const Subjects = () => {
               },
             }}
           />
+          <Controller
+            name="scoreCoefficient"
+            control={controlEdit}
+            render={({ field }) => (
+              <NumberInput
+                label="Hệ Số Điểm"
+                readOnly={isViewModal}
+                value={field.value}
+                onChange={(value) => {
+                  field.onChange(isNaN(Number(value)) ? 1 : Number(value));
+                }}
+                error={editFormErrors.scoreCoefficient?.message}
+                required
+                styles={{
+                  input: {
+                    cursor: isViewModal ? "default" : "text",
+                  },
+                }}
+              />
+            )}
+          />
           <TextInput
             label="Mô Tả"
             {...registerEdit("description")}
@@ -339,6 +376,22 @@ const Subjects = () => {
             placeholder="Nhập Mã Môn Học"
             error={createFormErrors.code?.message}
             required
+          />
+          <Controller
+            name="scoreCoefficient"
+            control={controlCreate}
+            render={({ field }) => (
+              <NumberInput
+                label="Hệ Số Điểm"
+                value={field.value}
+                onChange={(value) => {
+                  field.onChange(isNaN(Number(value)) ? 1 : Number(value));
+                }}
+                placeholder="Nhập Hệ Số Điểm (mặc định: 1)"
+                error={createFormErrors.scoreCoefficient?.message}
+                required
+              />
+            )}
           />
           <TextInput
             label="Mô Tả"

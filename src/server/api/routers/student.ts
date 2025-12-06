@@ -1,4 +1,4 @@
-import { EConduct, type Prisma } from "@prisma/client";
+import { EConduct } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
@@ -8,11 +8,7 @@ import { sql, type InferResult } from "kysely";
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  roleBasedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, roleBasedProcedure } from "~/server/api/trpc";
 import { EUserRole } from "~/server/kysely/enums";
 import { kyselyDB } from "~/server/kysely/db";
 import { env } from "~/env";
@@ -160,6 +156,7 @@ export const studentRouter = createTRPCRouter({
               subjectName: string;
               subjectCode: string;
               scored: number;
+              scoreCoefficient: number;
               updatedAt: Date;
             }>
           >`JSON_AGG(JSON_BUILD_OBJECT(
@@ -167,6 +164,7 @@ export const studentRouter = createTRPCRouter({
         'subjectName', subjects.name,
         'subjectCode', subjects.code,
         'scored', exam_results.scored,
+        'scoreCoefficient', subjects.score_coefficient,
         'updatedAt', exam_results.updated_at)
       )`.as("examResults"),
         ])
@@ -363,25 +361,112 @@ export const studentRouter = createTRPCRouter({
 
       const updatedGradeSubjects = grades.map((grade) => grade.subjectId);
 
-      const examResultsNotUpdated = await ctx.db.examResults.findMany({
-        where: {
-          studentId: id,
-          subjectId: {
-            notIn: updatedGradeSubjects,
-          },
-        },
-      });
+      // Get existing exam results not being updated with their subject coefficients
+      const [examResultsNotUpdated, newGradeSubjects, classes] =
+        await Promise.all([
+          ctx.db.examResults.findMany({
+            where: {
+              studentId: id,
+              subjectId: {
+                notIn: updatedGradeSubjects,
+              },
+            },
+            include: {
+              subject: {
+                select: {
+                  scoreCoefficient: true,
+                },
+              },
+            },
+          }),
+          ctx.db.subjects.findMany({
+            where: {
+              id: {
+                in: updatedGradeSubjects,
+              },
+            },
+            select: {
+              id: true,
+              scoreCoefficient: true,
+            },
+          }),
+          ctx.db.classes.findFirst({
+            where: {
+              students: {
+                some: {
+                  id: id,
+                },
+              },
+            },
+            select: {
+              classSubjects: {
+                select: {
+                  subjectId: true,
+                },
+              },
+            },
+          }),
+        ]);
 
-      const sumOfScoresWhichNotUpdated = examResultsNotUpdated.reduce(
-        (acc, curr) => acc + curr.scored,
-        0,
+      const subjectCoefficientMap = new Map(
+        newGradeSubjects.map((subject) => [
+          subject.id,
+          subject.scoreCoefficient,
+        ]),
       );
-      const sumOfNewScores = grades.reduce((acc, curr) => acc + curr.scored, 0);
 
-      const numberOfSubjects = examResultsNotUpdated.length + grades.length;
+      // Calculate weighted sum for existing scores not being updated
+      const {
+        weightedSum: existingWeightedSum,
+        totalCoefficient: existingTotalCoefficient,
+      } = examResultsNotUpdated.reduce(
+        (acc, curr) => ({
+          weightedSum:
+            acc.weightedSum + curr.scored * curr.subject.scoreCoefficient,
+          totalCoefficient:
+            acc.totalCoefficient + curr.subject.scoreCoefficient,
+        }),
+        { weightedSum: 0, totalCoefficient: 0 },
+      );
+
+      // Calculate weighted sum for new scores
+      const {
+        weightedSum: newWeightedSum,
+        totalCoefficient: newTotalCoefficient,
+      } = grades.reduce(
+        (acc, curr) => {
+          const coefficient = subjectCoefficientMap.get(curr.subjectId) ?? 1;
+          return {
+            weightedSum: acc.weightedSum + curr.scored * coefficient,
+            totalCoefficient: acc.totalCoefficient + coefficient,
+          };
+        },
+        { weightedSum: 0, totalCoefficient: 0 },
+      );
+
+      const totalWeightedSum = existingWeightedSum + newWeightedSum;
+      const totalCoefficientSum =
+        existingTotalCoefficient + newTotalCoefficient;
 
       const currentAvg =
-        (sumOfScoresWhichNotUpdated + sumOfNewScores) / numberOfSubjects;
+        totalCoefficientSum > 0 ? totalWeightedSum / totalCoefficientSum : 0;
+
+      const scoredSubjectIds = new Set<number>();
+
+      grades.forEach((grade) => {
+        scoredSubjectIds.add(grade.subjectId);
+      });
+      examResultsNotUpdated.forEach((result) => {
+        scoredSubjectIds.add(result.subjectId);
+      });
+
+      const numberOfSubjectsInClass = classes?.classSubjects.length ?? 0;
+
+      let avgOverall: number | undefined = undefined;
+
+      if (scoredSubjectIds.size == numberOfSubjectsInClass) {
+        avgOverall = currentAvg;
+      }
 
       await Promise.all([
         ctx.db.examResults.deleteMany({
@@ -405,6 +490,7 @@ export const studentRouter = createTRPCRouter({
           },
           data: {
             avgScoredSubjects: currentAvg,
+            avgOverall,
           },
         }),
       ]);
@@ -417,17 +503,20 @@ export const studentRouter = createTRPCRouter({
     EUserRole.SUPER_ADMIN,
   ])
     .input(
-      z.array(
-        z.object({
-          studentId: z.number(),
-          grades: z.array(
-            z.object({
-              subjectId: z.number(),
-              scored: z.number(),
-            }),
-          ),
-        }),
-      ),
+      z.object({
+        classId: z.number(),
+        data: z.array(
+          z.object({
+            studentId: z.number(),
+            grades: z.array(
+              z.object({
+                subjectId: z.number(),
+                scored: z.number(),
+              }),
+            ),
+          }),
+        ),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const updateExampleResults: Record<number, Array<number>> = {};
@@ -438,7 +527,7 @@ export const studentRouter = createTRPCRouter({
       }> = [];
       const updatedStudentIds: Array<number> = [];
 
-      for (const studentUpdate of input) {
+      for (const studentUpdate of input.data) {
         const { studentId, grades } = studentUpdate;
 
         const subjectIdsToUpdate = grades.map((grade) => grade.subjectId);
@@ -462,26 +551,78 @@ export const studentRouter = createTRPCRouter({
         ]),
       );
 
-      const examResults = await ctx.db.examResults.findMany({
-        where: {
-          studentId: {
-            in: updatedStudentIds,
-          },
-        },
-      });
+      const allSubjectIds = [
+        ...new Set(updatedData.map((data) => data.subjectId)),
+      ];
 
-      // Initialize all student scores
+      const [examResults, newGradeSubjects, classes] = await Promise.all([
+        ctx.db.examResults.findMany({
+          where: {
+            studentId: {
+              in: updatedStudentIds,
+            },
+          },
+          include: {
+            subject: {
+              select: {
+                scoreCoefficient: true,
+              },
+            },
+          },
+        }),
+        ctx.db.subjects.findMany({
+          where: {
+            id: {
+              in: allSubjectIds,
+            },
+          },
+          select: {
+            id: true,
+            scoreCoefficient: true,
+          },
+        }),
+        ctx.db.classes.findUnique({
+          where: {
+            id: input.classId,
+          },
+          select: {
+            classSubjects: {
+              select: {
+                subjectId: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const subjectCoefficientMap = new Map(
+        newGradeSubjects.map((subject) => [
+          subject.id,
+          subject.scoreCoefficient,
+        ]),
+      );
+
+      // Initialize all student weighted scores
       const updatedTotalScores: Record<
         number,
-        { total: number; count: number }
+        {
+          weightedTotal: number;
+          totalCoefficient: number;
+          numberOfScoredSubjects: number;
+        }
       > = {};
       for (const studentId of updatedStudentIds) {
-        updatedTotalScores[studentId] = { total: 0, count: 0 };
+        updatedTotalScores[studentId] = {
+          weightedTotal: 0,
+          totalCoefficient: 0,
+          numberOfScoredSubjects: 0,
+        };
       }
 
       // Process existing exam results
       for (const result of examResults) {
         const studentId = result.studentId;
+        const coefficient = result.subject.scoreCoefficient;
         const isUpdatedScore =
           updateExampleResults[studentId]?.includes(result.subjectId) ?? false;
 
@@ -490,13 +631,17 @@ export const studentRouter = createTRPCRouter({
             `${studentId}-${result.subjectId}`,
           );
           if (updatedScore !== undefined) {
-            updatedTotalScores[studentId]!.total += updatedScore;
-            updatedTotalScores[studentId]!.count += 1;
+            updatedTotalScores[studentId]!.weightedTotal +=
+              updatedScore * coefficient;
+            updatedTotalScores[studentId]!.totalCoefficient += coefficient;
           }
         } else {
-          updatedTotalScores[studentId]!.total += result.scored;
-          updatedTotalScores[studentId]!.count += 1;
+          updatedTotalScores[studentId]!.weightedTotal +=
+            result.scored * coefficient;
+          updatedTotalScores[studentId]!.totalCoefficient += coefficient;
         }
+
+        updatedTotalScores[studentId]!.numberOfScoredSubjects += 1;
       }
 
       // Add new grades for students without existing results
@@ -507,32 +652,56 @@ export const studentRouter = createTRPCRouter({
         );
 
         if (!hasExistingResult) {
-          updatedTotalScores[data.studentId]!.total += data.scored;
-          updatedTotalScores[data.studentId]!.count += 1;
+          const coefficient = subjectCoefficientMap.get(data.subjectId) ?? 1;
+          updatedTotalScores[data.studentId]!.weightedTotal +=
+            data.scored * coefficient;
+          updatedTotalScores[data.studentId]!.totalCoefficient += coefficient;
+          updatedTotalScores[data.studentId]!.numberOfScoredSubjects += 1;
         }
       }
 
       const avgScoresToUpdate = Object.entries(updatedTotalScores).map(
         ([studentIdStr, studentData]) => {
-          const { total, count } = studentData;
+          const { weightedTotal, totalCoefficient, numberOfScoredSubjects } =
+            studentData;
+
+          const avgScoredSubjects =
+            totalCoefficient > 0 ? weightedTotal / totalCoefficient : 0;
+
+          const numberOfSubjectsInClass = classes?.classSubjects.length ?? 0;
+
+          const haveAllScores =
+            numberOfScoredSubjects >= numberOfSubjectsInClass;
+
+          const avgOverall = haveAllScores ? avgScoredSubjects : undefined;
+
           return {
             id: Number(studentIdStr),
-            avgScoredSubjects: count > 0 ? total / count : 0,
+            avgScoredSubjects,
+            avgOverall,
           };
         },
       );
 
       let caseExpression = kyselyDB.case().when("id", "=", -1).then(0);
+      let caseExpressionOverall = kyselyDB
+        .case()
+        .when("id", "=", -1)
+        .then(sql`NULL`);
       for (const student of avgScoresToUpdate) {
         caseExpression = caseExpression
           .when("id", "=", student.id)
           .then(student.avgScoredSubjects);
+        caseExpressionOverall = caseExpressionOverall
+          .when("id", "=", student.id)
+          .then(student.avgOverall ?? sql`NULL`);
       }
 
       const updateAvgsQuery = kyselyDB
         .updateTable("students")
         .set({
           avg_scored_subjects: sql<number>`${caseExpression.end()}`,
+          avg_overall: sql<number | null>`${caseExpressionOverall.end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)
@@ -541,7 +710,7 @@ export const studentRouter = createTRPCRouter({
       await Promise.all([
         ctx.db.examResults.deleteMany({
           where: {
-            OR: input.map((studentUpdate) => ({
+            OR: input.data.map((studentUpdate) => ({
               studentId: studentUpdate.studentId,
               subjectId: {
                 in: updateExampleResults[studentUpdate.studentId],
@@ -605,8 +774,6 @@ export const studentRouter = createTRPCRouter({
 
       if (!studentRecords.length) return;
 
-      console.log("Matched student records:", studentRecords);
-
       const updateStudentsData = studentRecords.reduce(
         (acc, curr) => {
           if (!curr.id) return acc;
@@ -650,26 +817,79 @@ export const studentRouter = createTRPCRouter({
         ]),
       );
 
-      const examResults = await ctx.db.examResults.findMany({
-        where: {
-          studentId: {
-            in: updatedStudentIds,
-          },
-        },
-      });
+      // Get all subject coefficients for new grades
+      const allSubjectIds = [
+        ...new Set(updatedData.map((data) => data.subjectId)),
+      ];
 
-      // Initialize all student scores
+      const [examResults, newGradeSubjects, classRecord] = await Promise.all([
+        ctx.db.examResults.findMany({
+          where: {
+            studentId: {
+              in: updatedStudentIds,
+            },
+          },
+          include: {
+            subject: {
+              select: {
+                scoreCoefficient: true,
+              },
+            },
+          },
+        }),
+        ctx.db.subjects.findMany({
+          where: {
+            id: {
+              in: allSubjectIds,
+            },
+          },
+          select: {
+            id: true,
+            scoreCoefficient: true,
+          },
+        }),
+        ctx.db.classes.findUnique({
+          where: {
+            id: classId,
+          },
+          select: {
+            classSubjects: {
+              select: {
+                subjectId: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const subjectCoefficientMap = new Map(
+        newGradeSubjects.map((subject) => [
+          subject.id,
+          subject.scoreCoefficient,
+        ]),
+      );
+
+      // Initialize all student weighted scores
       const updatedTotalScores: Record<
         number,
-        { total: number; count: number }
+        {
+          weightedTotal: number;
+          totalCoefficient: number;
+          numberOfScoredSubjects: number;
+        }
       > = {};
       for (const studentId of updatedStudentIds) {
-        updatedTotalScores[studentId] = { total: 0, count: 0 };
+        updatedTotalScores[studentId] = {
+          weightedTotal: 0,
+          totalCoefficient: 0,
+          numberOfScoredSubjects: 0,
+        };
       }
 
       // Process existing exam results
       for (const result of examResults) {
         const studentId = result.studentId;
+        const coefficient = result.subject.scoreCoefficient;
         const isUpdatedScore =
           updateExampleResults[studentId]?.includes(result.subjectId) ?? false;
 
@@ -678,13 +898,17 @@ export const studentRouter = createTRPCRouter({
             `${studentId}-${result.subjectId}`,
           );
           if (updatedScore !== undefined) {
-            updatedTotalScores[studentId]!.total += updatedScore;
-            updatedTotalScores[studentId]!.count += 1;
+            updatedTotalScores[studentId]!.weightedTotal +=
+              updatedScore * coefficient;
+            updatedTotalScores[studentId]!.totalCoefficient += coefficient;
           }
         } else {
-          updatedTotalScores[studentId]!.total += result.scored;
-          updatedTotalScores[studentId]!.count += 1;
+          updatedTotalScores[studentId]!.weightedTotal +=
+            result.scored * coefficient;
+          updatedTotalScores[studentId]!.totalCoefficient += coefficient;
         }
+
+        updatedTotalScores[studentId]!.numberOfScoredSubjects += 1;
       }
 
       // Add new grades for students without existing results
@@ -695,32 +919,57 @@ export const studentRouter = createTRPCRouter({
         );
 
         if (!hasExistingResult) {
-          updatedTotalScores[data.studentId]!.total += data.scored;
-          updatedTotalScores[data.studentId]!.count += 1;
+          const coefficient = subjectCoefficientMap.get(data.subjectId) ?? 1;
+          updatedTotalScores[data.studentId]!.weightedTotal +=
+            data.scored * coefficient;
+          updatedTotalScores[data.studentId]!.totalCoefficient += coefficient;
+          updatedTotalScores[data.studentId]!.numberOfScoredSubjects += 1;
         }
       }
 
       const avgScoresToUpdate = Object.entries(updatedTotalScores).map(
         ([studentIdStr, studentData]) => {
-          const { total, count } = studentData;
+          const { weightedTotal, totalCoefficient, numberOfScoredSubjects } =
+            studentData;
+
+          const avgScoredSubjects =
+            totalCoefficient > 0 ? weightedTotal / totalCoefficient : 0;
+
+          const numberOfSubjectsInClass =
+            classRecord?.classSubjects.length ?? 0;
+
+          const haveAllScores =
+            numberOfScoredSubjects >= numberOfSubjectsInClass;
+
+          const avgOverall = haveAllScores ? avgScoredSubjects : undefined;
+
           return {
             id: Number(studentIdStr),
-            avgScoredSubjects: count > 0 ? total / count : 0,
+            avgScoredSubjects,
+            avgOverall,
           };
         },
       );
 
       let caseExpression = kyselyDB.case().when("id", "=", -1).then(0);
+      let caseExpressionOverall = kyselyDB
+        .case()
+        .when("id", "=", -1)
+        .then(sql`NULL`);
       for (const student of avgScoresToUpdate) {
         caseExpression = caseExpression
           .when("id", "=", student.id)
           .then(student.avgScoredSubjects);
+        caseExpressionOverall = caseExpressionOverall
+          .when("id", "=", student.id)
+          .then(student.avgOverall ?? sql`NULL`);
       }
 
       const updateAvgsQuery = kyselyDB
         .updateTable("students")
         .set({
           avg_scored_subjects: sql<number>`${caseExpression.end()}`,
+          avg_overall: sql<number | null>`${caseExpressionOverall.end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)

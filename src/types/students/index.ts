@@ -45,6 +45,7 @@ export type TExampleResultClassRelation = {
   createdAt: Date;
   updatedAt: Date;
   scored: number;
+  scoreCoefficient: number;
   subject: TSubjectForClass;
 };
 
@@ -82,5 +83,6 @@ export type TExamResults = {
   subjectName: string;
   subjectCode: string;
   scored: number;
+  scoreCoefficient: number;
   updatedAt: Date;
 };

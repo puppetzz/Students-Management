@@ -88,12 +88,13 @@ model Terms {
 }
 
 model Subjects {
-    id          Int      @id @default(autoincrement())
-    code        String   @unique
-    name        String
-    description String?
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @default(now()) @map("updated_at")
+    id               Int      @id @default(autoincrement())
+    code             String   @unique
+    name             String
+    scoreCoefficient Int      @default(1) @map("score_coefficient")
+    description      String?
+    createdAt        DateTime @default(now()) @map("created_at")
+    updatedAt        DateTime @default(now()) @map("updated_at")
 
     classSubjects ClassSubjects[]
     examResults   ExamResults[]

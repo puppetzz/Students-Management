@@ -152,7 +152,7 @@ const Grades = () => {
               ({
                 accessorKey: `subject_${subject.id}`,
                 header: subject.name,
-                size: 80,
+                size: 120,
                 enableResizing: false,
                 Cell: ({ row }) => {
                   return (

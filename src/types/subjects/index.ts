@@ -8,6 +8,7 @@ export type TSubject = {
   id: number;
   code: string;
   name: string;
+  scoreCoefficient: number;
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -20,4 +21,5 @@ export type TSubjectForClass = {
   id: number;
   code: string;
   name: string;
+  scoreCoefficient: number;
 };

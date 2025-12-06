@@ -2,11 +2,7 @@ import { type Prisma } from "@prisma/client";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  roleBasedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, roleBasedProcedure } from "~/server/api/trpc";
 import { EUserRole } from "~/server/kysely/enums";
 
 export const subjectRouter = createTRPCRouter({
@@ -90,6 +86,7 @@ export const subjectRouter = createTRPCRouter({
         code: z.string(),
         name: z.string(),
         description: z.string().optional(),
+        scoreCoefficient: z.number().min(1).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -107,10 +104,11 @@ export const subjectRouter = createTRPCRouter({
         code: z.string(),
         name: z.string(),
         description: z.string().optional(),
+        scoreCoefficient: z.number().min(1).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, name, description, code } = input;
+      const { id, name, description, code, scoreCoefficient } = input;
       return ctx.db.subjects.update({
         where: {
           id,
@@ -119,6 +117,7 @@ export const subjectRouter = createTRPCRouter({
           name: name,
           code: code,
           description: description,
+          scoreCoefficient: scoreCoefficient,
           updatedAt: new Date(),
         },
       });

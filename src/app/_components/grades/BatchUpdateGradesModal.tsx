@@ -41,6 +41,9 @@ export const BatchUpdateGradesModal = ({
   onClose,
   classData,
 }: Props) => {
+  // Note: This modal now supports coefficient-based average calculation
+  // The preview average is calculated using weighted scores (score * coefficient)
+  // to match the backend calculation logic
   const queryClient = useQueryClient();
 
   const { control, handleSubmit, reset, setValue, watch } =
@@ -58,13 +61,17 @@ export const BatchUpdateGradesModal = ({
   const subjects = useMemo(() => {
     if (!classData.students) return [];
 
-    const subjectMap = new Map<number, { id: number; name: string }>();
+    const subjectMap = new Map<
+      number,
+      { id: number; name: string; scoreCoefficient: number }
+    >();
     classData.students.forEach((student) => {
       student.examResults.forEach((result) => {
         if (!subjectMap.has(result.subjectId) && result.subjectName) {
           subjectMap.set(result.subjectId, {
             id: result.subjectId,
             name: result.subjectName,
+            scoreCoefficient: result.scoreCoefficient,
           });
         }
       });
@@ -76,6 +83,15 @@ export const BatchUpdateGradesModal = ({
       return nameA.localeCompare(nameB);
     });
   }, [classData.students]);
+
+  // Create subject coefficient map for average calculations
+  const subjectCoefficientMap = useMemo(() => {
+    const map = new Map<number, number>();
+    subjects.forEach((subject) => {
+      map.set(subject.id, subject.scoreCoefficient);
+    });
+    return map;
+  }, [subjects]);
 
   // Initialize form data when students data changes
   useEffect(() => {
@@ -118,10 +134,16 @@ export const BatchUpdateGradesModal = ({
   };
 
   const onSubmit = async (data: TBatchUpdateGrades) => {
-    const updates: Array<{
-      studentId: number;
-      grades: Array<{ subjectId: number; scored: number }>;
-    }> = [];
+    const updates: {
+      classId: number;
+      data: Array<{
+        studentId: number;
+        grades: Array<{ subjectId: number; scored: number }>;
+      }>;
+    } = {
+      classId: classData.id,
+      data: [],
+    };
 
     // Prepare updates for each student
     Object.entries(data.grades).forEach(([studentIdStr, studentGrades]) => {
@@ -138,14 +160,14 @@ export const BatchUpdateGradesModal = ({
       });
 
       if (gradeUpdates.length > 0) {
-        updates.push({
+        updates.data.push({
           studentId,
           grades: gradeUpdates,
         });
       }
     });
 
-    if (updates.length === 0) {
+    if (updates.data.length === 0) {
       toast.warning("Không có điểm nào được cập nhật");
       return;
     }
@@ -154,7 +176,7 @@ export const BatchUpdateGradesModal = ({
       // Update grades for each student
       await updateGradesMutation.mutateAsync(updates);
 
-      toast.success(`Đã cập nhật điểm cho ${updates.length} học viên`);
+      toast.success(`Đã cập nhật điểm cho ${updates.data.length} học viên`);
 
       // Invalidate queries
       void queryClient.invalidateQueries({
@@ -306,21 +328,51 @@ export const BatchUpdateGradesModal = ({
                                 `grades.${student.id}`,
                               );
 
-                              // Calculate average in real-time
-                              let total = 0;
-                              let count = 0;
-                              Object.entries(studentGrades || {}).forEach(
-                                ([_, score]) => {
-                                  if (score !== null && score !== undefined) {
-                                    total += score;
-                                    count += 1;
-                                  }
-                                },
-                              );
+                              // Calculate weighted average using coefficients in real-time
+                              // Include all grades: existing + modified/new ones
+                              let weightedTotal = 0;
+                              let totalCoefficient = 0;
+
+                              // Process all subjects to include both existing and new grades
+                              subjects.forEach((subject) => {
+                                const formScore =
+                                  studentGrades?.[subject.id.toString()];
+
+                                let finalScore: number | null = null;
+                                if (
+                                  formScore !== null &&
+                                  formScore !== undefined
+                                ) {
+                                  // Use form value (new/modified grade)
+                                  finalScore = formScore;
+                                } else {
+                                  // Use existing grade from API if no form value
+                                  const existingResult =
+                                    student.examResults.find(
+                                      (result) =>
+                                        result.subjectId === subject.id,
+                                    );
+                                  finalScore = existingResult?.scored ?? null;
+                                }
+
+                                if (
+                                  finalScore !== null &&
+                                  finalScore !== undefined
+                                ) {
+                                  const coefficient =
+                                    subjectCoefficientMap.get(subject.id) ?? 1;
+                                  weightedTotal += finalScore * coefficient;
+                                  totalCoefficient += coefficient;
+                                }
+                              });
 
                               const avg =
-                                count > 0
-                                  ? parseFloat((total / count).toFixed(1))
+                                totalCoefficient > 0
+                                  ? parseFloat(
+                                      (
+                                        weightedTotal / totalCoefficient
+                                      ).toFixed(1),
+                                    )
                                   : 0;
 
                               return (
