@@ -1,29 +1,124 @@
-# Create T3 App
+# STUDENTS MANAGEMENT APP
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+## 📦 1. Environment Setup
 
-## What's next? How do I make an app with this?
+System Requirements
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+Before running the app, ensure that you have:
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+- Node.js >= 20
+- npm or yarn
+- Docker Desktop or Docker Engine + Docker Compose
+- PostgreSQL CLI (optional for DB management)
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+## 🗂 2. Project Structure
 
-## Learn More
+```
+students-management/
+│
+├── docker-compose.yml
+├── Dockerfile
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── src/
+│   ├── app/
+│   ├── pages/
+│   ├── api/
+│   └── components/
+│
+├── package.json
+└── README.md
+```
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## ⚙️ 3. Environment Variables
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+Create a .env file in the project root:
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+```
+DATABASE_URL="postgresql://db_user:db_password@db_host:5432/db_name"
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY=""
+AWS_S3_BUCKET_NAME="s3_bucket_name"
+AWS_REGION="aws_region"
+AWS_S3_BUCKET_URL="https://s3_bucket_name.s3.aws_region.amazonaws.com"
+NEXTAUTH_URL="https://qlhv.example.com"
+AUTH_TRUST_HOST="https://qlhv.example.com"
+```
 
-## How do I deploy this?
+## 🐳 4. Running the App with Docker
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+### 👉 4.1 Build & Start Containers
+
+From the project root, run:
+
+```
+docker-compose up --build
+```
+
+Docker will start:
+
+- students_app – Next.js app (port 3000)
+
+- db – PostgreSQL database (port 5432)
+
+Access the application at:
+
+🔗 http://localhost:3000
+
+### 👉 4.2 Run Database Migrations
+
+```
+docker-compose exec students_app npx prisma migrate deploy
+```
+
+## ▶️ 5. Running the App Locally (without Docker)
+
+### 5.1 Install dependencies
+
+```
+npm install
+```
+
+### 5.2 Start PostgreSQL manually
+
+Update .env to point to your local PostgreSQL instance:
+
+```
+DATABASE_URL="postgresql://postgres:password@localhost:5432/students_db"
+```
+
+### 5.3 Run the development server
+
+```
+npm run dev
+```
+
+App will run at:
+👉 http://localhost:3000
+
+## 🧪 6. Useful Commands
+
+| Command                  | Description                     |
+| ------------------------ | ------------------------------- |
+| `npm run dev`            | Run Next.js in development mode |
+| `npm run build`          | Build for production            |
+| `npm start`              | Start production server         |
+| `npx prisma studio`      | Open Prisma DB UI               |
+| `docker-compose up -d`   | Start app in detached mode      |
+| `docker-compose logs -f` | View logs                       |
+
+## 🗑 7. Stop & Remove Containers
+
+Stop containers:
+
+```
+docker-compose down
+```
+
+## 📄 8. Additional Notes
+
+- Easy to deploy to cloud servers using Docker
+- Ready to scale with modules like Classes, Teachers, Grades
+- API is implemented via Next.js API Routes
