@@ -18,6 +18,8 @@ import { IconUpload, IconPhoto, IconX } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { updateStudentSchema } from "common/schema/student";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
@@ -25,6 +27,8 @@ import { api } from "~/trpc/react";
 import type { TUpdateStudent } from "~/types/students";
 import { useUploadImageMutation } from "src/mutations/upload-file.mutation";
 import { ES3Folder } from "common/enums/s3.enum";
+
+dayjs.locale("vi");
 
 type Props = {
   opened: boolean;
@@ -368,6 +372,8 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                     placeholder="Chọn ngày sinh"
                     required
                     readOnly={!isEditMode}
+                    valueFormat="DD/MM/YYYY"
+                    locale="vi"
                   />
                   <TextInput
                     label="CCCD"
