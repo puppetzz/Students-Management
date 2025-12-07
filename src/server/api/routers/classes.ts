@@ -4,11 +4,15 @@ import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
   EGradeClassification,
 } from "common/constants/students";
+import { sql } from "kysely";
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
 
 import { createTRPCRouter, roleBasedProcedure } from "~/server/api/trpc";
+import { kyselyDB } from "~/server/kysely/db";
 import { EUserRole } from "~/server/kysely/enums";
+import type { TClasses } from "~/types/classes";
+import type { TSubjectForClass } from "~/types/subjects";
 
 const getFinalClassification = (
   scoreClassification: EGradeClassification | null,
@@ -39,72 +43,71 @@ export const classesRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { search, termId, page, pageSize } = input;
-      const where: Prisma.ClassesWhereInput = {
-        ...(search
-          ? {
-              name: {
-                contains: search,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-        ...(termId ? { termId: termId } : {}),
-      };
-
-      const orderBy: Prisma.ClassesOrderByWithAggregationInput[] = [
-        {
-          name: "asc",
-        },
-      ];
-
-      if (!termId) {
-        orderBy.unshift({ createdAt: "desc" });
-      }
 
       const skip = page && pageSize ? (page - 1) * pageSize : undefined;
       const take = pageSize ?? undefined;
 
+      const classesQuery = kyselyDB
+        .selectFrom("classes")
+        .innerJoin(
+          "training_program_subjects",
+          "classes.training_program_id",
+          "training_program_subjects.training_program_id",
+        )
+        .innerJoin(
+          "subjects",
+          "training_program_subjects.subject_id",
+          "subjects.id",
+        )
+        .innerJoin("terms", "classes.term_id", "terms.id")
+        .$if(!!search, (qb) =>
+          qb.where("classes.name", "ilike", `%${search!}%`),
+        )
+        .$if(!!termId, (qb) => qb.where("classes.term_id", "=", termId!));
+
+      const classesQueryCompiled = classesQuery
+        .select([
+          "classes.id",
+          "classes.name",
+          "classes.description",
+          "classes.created_at as createdAt",
+          "classes.updated_at as updatedAt",
+          "classes.term_id as termId",
+          "terms.name as termName",
+          "classes.training_program_id as trainingProgramId",
+          sql<TSubjectForClass[]>`JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', subjects.id,
+              'name', subjects.name,
+              'description', subjects.description
+            )
+          ) FILTER (WHERE subjects.id IS NOT NULL)`.as("subjects"),
+        ])
+        .groupBy(["classes.id", "terms.name"])
+        .$if(!!termId, (qb) => qb.orderBy("classes.created_at", "desc"))
+        .orderBy("classes.name", "asc")
+        .offset(skip ?? 0)
+        .limit(take ?? 10)
+        .compile();
+
+      const countClassesQueryCompiled = classesQuery
+        .select([sql<number>`COUNT(DISTINCT classes.id)`.as("count")])
+        .compile();
+
       const [classes, totalCount] = await Promise.all([
-        ctx.db.classes.findMany({
-          skip,
-          take,
-          where,
-          orderBy,
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            classSubjects: {
-              select: {
-                subject: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-            term: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            termId: true,
-          },
-        }),
-        ctx.db.classes.count({
-          select: {
-            id: true,
-          },
-        }),
+        ctx.db.$queryRawUnsafe<TClasses[]>(
+          classesQueryCompiled.sql,
+          ...classesQueryCompiled.parameters,
+        ),
+        ctx.db.$queryRawUnsafe<{ count: bigint }[]>(
+          countClassesQueryCompiled.sql,
+          ...countClassesQueryCompiled.parameters,
+        ),
       ]);
 
       return {
         data: classes,
-        total: totalCount.id,
+        total: Number(totalCount[0]?.count) ?? 0,
       };
     }),
 
@@ -131,15 +134,13 @@ export const classesRouter = createTRPCRouter({
         name: z.string(),
         termId: z.number(),
         description: z.string().optional(),
-        subjectIds: z.array(z.number()).optional(),
+        trainingProgramId: z.number(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { subjectIds, ...rest } = input;
-
       const termExists = await ctx.db.terms.findFirst({
         where: {
-          id: rest.termId,
+          id: input.termId,
         },
       });
 
@@ -152,18 +153,9 @@ export const classesRouter = createTRPCRouter({
 
       const createdClass = await ctx.db.classes.create({
         data: {
-          ...rest,
+          ...input,
         },
       });
-
-      if (subjectIds) {
-        await ctx.db.classSubjects.createMany({
-          data: subjectIds.map((id) => ({
-            subjectId: id,
-            classId: createdClass.id,
-          })),
-        });
-      }
 
       return createdClass;
     }),
@@ -172,44 +164,25 @@ export const classesRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
-        subjectIds: z.array(z.number()),
+        trainingProgramId: z.number().optional(),
         name: z.string().optional(),
         termId: z.number().optional(),
         description: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, name, subjectIds, termId, description } = input;
-
-      const updatedClass = await ctx.db.$transaction(async (tx) => {
-        const [updatedClass] = await Promise.all([
-          tx.classes.update({
-            where: {
-              id,
-            },
-            data: {
-              name: name ?? undefined,
-              updatedAt: new Date(),
-              termId: termId ?? undefined,
-              description: description ?? undefined,
-            },
-          }),
-          tx.classSubjects.deleteMany({
-            where: {
-              classId: id,
-            },
-          }),
-          tx.classSubjects.createMany({
-            data: subjectIds
-              ? subjectIds.map((subjectId) => ({
-                  subjectId,
-                  classId: id,
-                }))
-              : [],
-          }),
-        ]);
-
-        return updatedClass;
+      const { id, name, trainingProgramId, termId, description } = input;
+      const updatedClass = ctx.db.classes.update({
+        where: {
+          id,
+        },
+        data: {
+          name: name ?? undefined,
+          updatedAt: new Date(),
+          termId: termId ?? undefined,
+          description: description ?? undefined,
+          trainingProgramId: trainingProgramId ?? undefined,
+        },
       });
 
       return updatedClass;

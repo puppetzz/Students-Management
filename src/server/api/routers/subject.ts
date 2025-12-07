@@ -33,9 +33,15 @@ export const subjectRouter = createTRPCRouter({
           : {}),
         ...(classId
           ? {
-              classSubjects: {
+              trainingProgramSubjects: {
                 some: {
-                  classId: classId,
+                  trainingProgram: {
+                    classes: {
+                      some: {
+                        id: classId,
+                      },
+                    },
+                  },
                 },
               },
             }
@@ -89,28 +95,30 @@ export const subjectRouter = createTRPCRouter({
       const take = pageSize;
       const skip = pageSize * (page - 1);
 
-      const where: Prisma.SubjectsWhereInput = {
-        ...(search
-          ? {
-              name: {
-                contains: search,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-        ...(classId
-          ? {
-              classSubjects: {
-                some: {
-                  classId: classId,
-                },
-              },
-            }
-          : {}),
-      };
-
-      const subjectQueryCompiled = kyselyDB
+      const subjectQuery = kyselyDB
         .selectFrom("subjects")
+        .$if(!!search, (qb) => qb.where("name", "ilike", `%${search}%`))
+        .$if(!!classId, (qb) =>
+          qb.where((sqb) =>
+            sqb.exists(
+              sqb
+                .selectFrom("training_program_subjects")
+                .leftJoin(
+                  "classes",
+                  "training_program_subjects.training_program_id",
+                  "classes.training_program_id",
+                )
+                .whereRef(
+                  "training_program_subjects.subject_id",
+                  "=",
+                  "subjects.id",
+                )
+                .where("classes.id", "=", classId!),
+            ),
+          ),
+        );
+
+      const subjectQueryCompiled = subjectQuery
         .select([
           "id",
           "code",
@@ -119,20 +127,13 @@ export const subjectRouter = createTRPCRouter({
           "description",
         ])
         .select(sql<TSubjectMaterial[]>`material`.as("material"))
-        .$if(!!search, (qb) => qb.where("name", "ilike", `%${search}%`))
-        .$if(!!classId, (qb) =>
-          qb.where((sqb) =>
-            sqb.exists(
-              sqb
-                .selectFrom("class_subjects")
-                .whereRef("class_subjects.subject_id", "=", "subjects.id")
-                .where("class_subjects.class_id", "=", classId!),
-            ),
-          ),
-        )
         .offset(skip)
         .limit(take)
         .orderBy("name", "asc")
+        .compile();
+
+      const countSubjectQueryCompiled = subjectQuery
+        .select([sql<number>`COUNT(DISTINCT subjects.id)`.as("count")])
         .compile();
 
       const [subjects, totalRecords] = await Promise.all([
@@ -141,17 +142,16 @@ export const subjectRouter = createTRPCRouter({
           ...subjectQueryCompiled.parameters,
         ),
 
-        ctx.db.subjects.count({
-          where,
-          select: {
-            id: true,
-          },
-        }),
+        ctx.db
+          .$queryRawUnsafe<
+            { count: bigint }[]
+          >(countSubjectQueryCompiled.sql, ...countSubjectQueryCompiled.parameters)
+          .then((res) => res[0] ?? { count: 0 }),
       ]);
 
       return {
         data: subjects,
-        total: totalRecords.id,
+        total: Number(totalRecords.count) ?? 0,
       };
     }),
 

@@ -34,12 +34,19 @@ type Props = {
     termId: number;
     termName?: string;
   };
+  classSubjects: Array<{
+    id: number;
+    name: string;
+    code: string;
+    scoreCoefficient: number;
+  }>;
 };
 
 export const BatchUpdateGradesModal = ({
   opened,
   onClose,
   classData,
+  classSubjects,
 }: Props) => {
   // Note: This modal now supports coefficient-based average calculation
   // The preview average is calculated using weighted scores (score * coefficient)
@@ -57,32 +64,14 @@ export const BatchUpdateGradesModal = ({
   // Update grades mutation
   const updateGradesMutation = api.student.batchUpdateGrades.useMutation();
 
-  // Get unique subjects from all students' exam results
+  // Get subjects from classSubjects prop (all subjects in the class's training program)
   const subjects = useMemo(() => {
-    if (!classData.students) return [];
-
-    const subjectMap = new Map<
-      number,
-      { id: number; name: string; scoreCoefficient: number }
-    >();
-    classData.students.forEach((student) => {
-      student.examResults.forEach((result) => {
-        if (!subjectMap.has(result.subjectId) && result.subjectName) {
-          subjectMap.set(result.subjectId, {
-            id: result.subjectId,
-            name: result.subjectName,
-            scoreCoefficient: result.scoreCoefficient,
-          });
-        }
-      });
-    });
-
-    return Array.from(subjectMap.values()).sort((a, b) => {
+    return [...classSubjects].sort((a, b) => {
       const nameA = a.name ?? "";
       const nameB = b.name ?? "";
       return nameA.localeCompare(nameB);
     });
-  }, [classData.students]);
+  }, [classSubjects]);
 
   // Create subject coefficient map for average calculations
   const subjectCoefficientMap = useMemo(() => {

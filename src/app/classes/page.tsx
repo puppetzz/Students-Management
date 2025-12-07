@@ -12,17 +12,15 @@ import {
   MultiSelect,
   Pagination,
   Select,
-  Textarea,
   TextInput,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSearchParams from "~/hooks/useSearchParams";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
 import { parseNumber } from "utils/parseNumber";
-import type { TSubject } from "~/types/subjects";
 import { toast } from "react-toastify";
 import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 import {
@@ -43,7 +41,6 @@ const Classes = () => {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
-    getValues: getValuesEdit,
     setValue: setValuesEdit,
     watch: watchEdit,
   } = useForm({
@@ -83,7 +80,8 @@ const Classes = () => {
     },
   );
 
-  const subjectsQuery = api.subject.getOptions.useQuery({});
+  const trainingProgramOptionsQuery =
+    api.trainingPrograms.getOptions.useQuery();
 
   const termQuery = api.term.getAll.useQuery({
     page: 1,
@@ -92,30 +90,21 @@ const Classes = () => {
 
   // Handle errors
   useTRPCErrorHandler(classesQuery.error);
-  useTRPCErrorHandler(subjectsQuery.error);
+  useTRPCErrorHandler(trainingProgramOptionsQuery.error);
   useTRPCErrorHandler(termQuery.error);
 
   const classUpdateMutation = api.classes.update.useMutation();
   const classCreateMutation = api.classes.create.useMutation();
 
   const handleOpenViewModal = (data: TUpdateClasses) => {
-    const {
-      id,
-      name,
-      description,
-      classSubjects,
-      updatedSubjectIds,
-      term,
-      termId,
-    } = data;
+    const { id, name, description, trainingProgramId, termName, termId } = data;
 
     resetEdit({
       id: id,
       name: name,
-      description: description,
-      classSubjects: classSubjects,
-      updatedSubjectIds: updatedSubjectIds,
-      term: term,
+      description,
+      trainingProgramId,
+      termName,
       termId,
     });
 
@@ -144,7 +133,7 @@ const Classes = () => {
         accessorKey: "term",
         header: "Khóa",
         Cell: ({ row }) => {
-          return <span>{row.original.term?.name ?? "N/A"}</span>;
+          return <span>{row.original.termName ?? "N/A"}</span>;
         },
       },
       {
@@ -161,24 +150,21 @@ const Classes = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: classesData as TClasses[],
+    data: classesData,
     state: {
       isLoading: classesQuery.isFetching,
     },
     mantineTableBodyRowProps: ({ row }) => ({
       onClick: () => {
-        const { id, name, description, classSubjects, term, termId } =
+        const { id, name, description, termName, termId, trainingProgramId } =
           row.original;
-
-        const updatedSubjectIds = classSubjects.map((cs) => cs.subject.id);
 
         handleOpenViewModal({
           id,
           name,
           description,
-          classSubjects,
-          updatedSubjectIds,
-          term,
+          trainingProgramId,
+          termName,
           termId,
         });
       },
@@ -199,7 +185,7 @@ const Classes = () => {
           name: data.name,
           description: data.description ?? undefined,
           termId: data.termId,
-          subjectIds: data.updatedSubjectIds,
+          trainingProgramId: data.trainingProgramId,
         },
         {
           onSuccess: () => {
@@ -220,7 +206,7 @@ const Classes = () => {
           name: data.name,
           description: data.description ?? undefined,
           termId: data.termId,
-          subjectIds: data.subjectIds ?? [],
+          trainingProgramId: data.trainingProgramId,
         },
         {
           onSuccess: () => {
@@ -233,17 +219,6 @@ const Classes = () => {
     },
     [classCreateMutation, closeCreateModal, classesQuery],
   );
-
-  const subjectsMultiSelectData = useMemo(() => {
-    return (
-      subjectsQuery.data?.data.map(
-        (subject: Pick<TSubject, "id" | "name" | "code">) => ({
-          value: subject.id.toString(),
-          label: subject.name,
-        }),
-      ) ?? []
-    );
-  }, [subjectsQuery.data?.data]);
 
   const termsSelectData = useMemo(() => {
     return (
@@ -325,36 +300,23 @@ const Classes = () => {
             styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
 
-          {isViewModal ? (
-            <Textarea
-              label="Môn học"
-              readOnly={isViewModal}
-              value={
-                getValuesEdit("classSubjects")
-                  ?.map((cs) => cs.subject.name)
-                  ?.join(", ") ?? ""
-              }
-              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
-            />
-          ) : (
-            <MultiSelect
-              label="Môn học"
-              data={subjectsMultiSelectData}
-              value={watchEdit("updatedSubjectIds")?.map((id) => id.toString())}
-              onChange={(value) => {
-                setValuesEdit(
-                  "updatedSubjectIds",
-                  value.map((id) => Number(id)),
-                  {
-                    shouldValidate: true,
-                  },
-                );
-              }}
-              readOnly={isViewModal}
-              searchable
-              styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
-            />
-          )}
+          <Select
+            label="Chương Trình Đào Tạo"
+            data={
+              trainingProgramOptionsQuery.data?.map((program) => ({
+                value: program.id.toString(),
+                label: program.name,
+              })) ?? []
+            }
+            value={watchEdit("trainingProgramId")?.toString()}
+            onChange={(value) => {
+              setValuesEdit("trainingProgramId", Number(value), {
+                shouldValidate: true,
+              });
+            }}
+            readOnly={isViewModal}
+            styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
+          />
 
           <Select
             label="Khóa Học"
@@ -412,20 +374,20 @@ const Classes = () => {
             {...registerCreate("description")}
             placeholder="Nhập Mô Tả Cho Lớp"
           />
-          <MultiSelect
-            label="Môn học"
-            data={subjectsMultiSelectData}
-            value={watchCreate("subjectIds")?.map((id) => id.toString())}
+          <Select
+            label="Chương Trình Đào Tạo"
+            data={
+              trainingProgramOptionsQuery.data?.map((program) => ({
+                value: program.id.toString(),
+                label: program.name,
+              })) ?? []
+            }
+            value={watchCreate("trainingProgramId")?.toString()}
             onChange={(value) => {
-              setValuesCreate(
-                "subjectIds",
-                value.map((id) => Number(id)),
-                {
-                  shouldValidate: true,
-                },
-              );
+              setValuesCreate("trainingProgramId", Number(value), {
+                shouldValidate: true,
+              });
             }}
-            searchable
           />
           <Select
             label="Khóa Học"

@@ -57,16 +57,17 @@ model Students {
 }
 
 model Classes {
-    id          Int      @id @default(autoincrement())
-    name        String
-    description String?
-    termId      Int      @map("term_id")
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @default(now()) @map("updated_at")
+    id                Int      @id @default(autoincrement())
+    name              String
+    description       String?
+    termId            Int      @map("term_id")
+    trainingProgramId Int      @map("training_program_id")
+    createdAt         DateTime @default(now()) @map("created_at")
+    updatedAt         DateTime @default(now()) @map("updated_at")
 
-    classSubjects ClassSubjects[]
-    term          Terms           @relation(fields: [termId], references: [id])
-    students      Students[]
+    term            Terms           @relation(fields: [termId], references: [id])
+    trainingProgram TrainingProgram @relation(fields: [trainingProgramId], references: [id])
+    students        Students[]
 
     @@index([termId])
     @@index([name])
@@ -97,8 +98,8 @@ model Subjects {
     createdAt        DateTime @default(now()) @map("created_at")
     updatedAt        DateTime @default(now()) @map("updated_at")
 
-    classSubjects ClassSubjects[]
-    examResults   ExamResults[]
+    examResults             ExamResults[]
+    trainingProgramSubjects TrainingProgramSubjects[]
 
     @@index([name])
     @@index([code])
@@ -122,17 +123,31 @@ model ExamResults {
     @@map("exam_results")
 }
 
-model ClassSubjects {
-    classId   Int @map("class_id")
-    subjectId Int @map("subject_id")
+model TrainingProgramSubjects {
+    trainingProgramId Int @map("training_program_id")
+    subjectId         Int @map("subject_id")
 
-    class   Classes  @relation(fields: [classId], references: [id])
-    subject Subjects @relation(fields: [subjectId], references: [id])
+    trainingProgram TrainingProgram @relation(fields: [trainingProgramId], references: [id])
+    subject         Subjects        @relation(fields: [subjectId], references: [id])
 
-    @@id([classId, subjectId])
-    @@index([classId])
+    @@id([trainingProgramId, subjectId])
+    @@index([trainingProgramId])
     @@index([subjectId])
-    @@map("class_subjects")
+    @@map("training_program_subjects")
+}
+
+model TrainingProgram {
+    id          Int      @id @default(autoincrement())
+    name        String
+    description String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @default(now()) @map("updated_at")
+
+    trainingProgramSubjects TrainingProgramSubjects[]
+    classes                 Classes[]
+
+    @@index([name])
+    @@map("training_programs")
 }
 
 enum EConduct {

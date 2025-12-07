@@ -183,7 +183,7 @@ export const ViewAndEditGrades = ({
                           <Table.Thead>
                             <Table.Tr>
                               <Table.Th>Môn học</Table.Th>
-                              <Table.Th>Điểm</Table.Th>
+                              <Table.Th ta="center">Điểm</Table.Th>
                               <Table.Th>Ngày cập nhật</Table.Th>
                             </Table.Tr>
                           </Table.Thead>
@@ -195,7 +195,7 @@ export const ViewAndEditGrades = ({
                               return (
                                 <Table.Tr key={subject.id}>
                                   <Table.Td>{subject.name}</Table.Td>
-                                  <Table.Td>
+                                  <Table.Td ta="center">
                                     {isEditMode ? (
                                       <NumberInput
                                         value={

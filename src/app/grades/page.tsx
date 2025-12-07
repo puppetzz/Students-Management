@@ -409,6 +409,7 @@ const Grades = () => {
           name: classData?.name ?? "N/A",
           termName: termData?.name ?? "N/A",
         }}
+        classSubjects={subjectsQuery.data?.data ?? []}
       />
       <ImportExcelModal
         opened={openedImportExcelModal}

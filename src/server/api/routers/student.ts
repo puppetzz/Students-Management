@@ -361,8 +361,22 @@ export const studentRouter = createTRPCRouter({
 
       const updatedGradeSubjects = grades.map((grade) => grade.subjectId);
 
+      const countSubjectsInClassQueryCompiled = kyselyDB
+        .selectFrom("students")
+        .innerJoin("classes", "students.class_id", "classes.id")
+        .innerJoin(
+          "training_program_subjects",
+          "classes.training_program_id",
+          "training_program_subjects.training_program_id",
+        )
+        .where("students.id", "=", id)
+        .select(
+          sql`COUNT(DISTINCT training_program_subjects.subject_id)`.as("count"),
+        )
+        .compile();
+
       // Get existing exam results not being updated with their subject coefficients
-      const [examResultsNotUpdated, newGradeSubjects, classes] =
+      const [examResultsNotUpdated, newGradeSubjects, countSubjectsInClass] =
         await Promise.all([
           ctx.db.examResults.findMany({
             where: {
@@ -390,22 +404,12 @@ export const studentRouter = createTRPCRouter({
               scoreCoefficient: true,
             },
           }),
-          ctx.db.classes.findFirst({
-            where: {
-              students: {
-                some: {
-                  id: id,
-                },
-              },
-            },
-            select: {
-              classSubjects: {
-                select: {
-                  subjectId: true,
-                },
-              },
-            },
-          }),
+          ctx.db.$queryRawUnsafe<{
+            count: bigint;
+          }>(
+            countSubjectsInClassQueryCompiled.sql,
+            ...countSubjectsInClassQueryCompiled.parameters,
+          ),
         ]);
 
       const subjectCoefficientMap = new Map(
@@ -460,7 +464,7 @@ export const studentRouter = createTRPCRouter({
         scoredSubjectIds.add(result.subjectId);
       });
 
-      const numberOfSubjectsInClass = classes?.classSubjects.length ?? 0;
+      const numberOfSubjectsInClass = Number(countSubjectsInClass?.count) ?? 0;
 
       let avgOverall: number | undefined = undefined;
 
@@ -555,45 +559,57 @@ export const studentRouter = createTRPCRouter({
         ...new Set(updatedData.map((data) => data.subjectId)),
       ];
 
-      const [examResults, newGradeSubjects, classes] = await Promise.all([
-        ctx.db.examResults.findMany({
-          where: {
-            studentId: {
-              in: updatedStudentIds,
-            },
-          },
-          include: {
-            subject: {
-              select: {
-                scoreCoefficient: true,
+      const countSubjectsInClassQueryCompiled = kyselyDB
+        .selectFrom("classes")
+        .innerJoin(
+          "training_program_subjects",
+          "classes.training_program_id",
+          "training_program_subjects.training_program_id",
+        )
+        .where("classes.id", "=", input.classId)
+        .select(
+          sql`COUNT(DISTINCT training_program_subjects.subject_id)`.as("count"),
+        )
+        .compile();
+
+      const [examResults, newGradeSubjects, countSubjectsInClass] =
+        await Promise.all([
+          ctx.db.examResults.findMany({
+            where: {
+              studentId: {
+                in: updatedStudentIds,
               },
             },
-          },
-        }),
-        ctx.db.subjects.findMany({
-          where: {
-            id: {
-              in: allSubjectIds,
-            },
-          },
-          select: {
-            id: true,
-            scoreCoefficient: true,
-          },
-        }),
-        ctx.db.classes.findUnique({
-          where: {
-            id: input.classId,
-          },
-          select: {
-            classSubjects: {
-              select: {
-                subjectId: true,
+            include: {
+              subject: {
+                select: {
+                  scoreCoefficient: true,
+                },
               },
             },
-          },
-        }),
-      ]);
+          }),
+          ctx.db.subjects.findMany({
+            where: {
+              id: {
+                in: allSubjectIds,
+              },
+            },
+            select: {
+              id: true,
+              scoreCoefficient: true,
+            },
+          }),
+          ctx.db
+            .$queryRawUnsafe<
+              {
+                count: bigint;
+              }[]
+            >(
+              countSubjectsInClassQueryCompiled.sql,
+              ...countSubjectsInClassQueryCompiled.parameters,
+            )
+            .then((res) => Number(res[0]?.count) ?? 0),
+        ]);
 
       const subjectCoefficientMap = new Map(
         newGradeSubjects.map((subject) => [
@@ -668,7 +684,7 @@ export const studentRouter = createTRPCRouter({
           const avgScoredSubjects =
             totalCoefficient > 0 ? weightedTotal / totalCoefficient : 0;
 
-          const numberOfSubjectsInClass = classes?.classSubjects.length ?? 0;
+          const numberOfSubjectsInClass = Number(countSubjectsInClass) ?? 0;
 
           const haveAllScores =
             numberOfScoredSubjects >= numberOfSubjectsInClass;
@@ -822,45 +838,57 @@ export const studentRouter = createTRPCRouter({
         ...new Set(updatedData.map((data) => data.subjectId)),
       ];
 
-      const [examResults, newGradeSubjects, classRecord] = await Promise.all([
-        ctx.db.examResults.findMany({
-          where: {
-            studentId: {
-              in: updatedStudentIds,
-            },
-          },
-          include: {
-            subject: {
-              select: {
-                scoreCoefficient: true,
+      const countSubjectsInClassQueryCompiled = kyselyDB
+        .selectFrom("classes")
+        .innerJoin(
+          "training_program_subjects",
+          "classes.training_program_id",
+          "training_program_subjects.training_program_id",
+        )
+        .where("classes.id", "=", classId)
+        .select(
+          sql`COUNT(DISTINCT training_program_subjects.subject_id)`.as("count"),
+        )
+        .compile();
+
+      const [examResults, newGradeSubjects, countSubjectsInClass] =
+        await Promise.all([
+          ctx.db.examResults.findMany({
+            where: {
+              studentId: {
+                in: updatedStudentIds,
               },
             },
-          },
-        }),
-        ctx.db.subjects.findMany({
-          where: {
-            id: {
-              in: allSubjectIds,
-            },
-          },
-          select: {
-            id: true,
-            scoreCoefficient: true,
-          },
-        }),
-        ctx.db.classes.findUnique({
-          where: {
-            id: classId,
-          },
-          select: {
-            classSubjects: {
-              select: {
-                subjectId: true,
+            include: {
+              subject: {
+                select: {
+                  scoreCoefficient: true,
+                },
               },
             },
-          },
-        }),
-      ]);
+          }),
+          ctx.db.subjects.findMany({
+            where: {
+              id: {
+                in: allSubjectIds,
+              },
+            },
+            select: {
+              id: true,
+              scoreCoefficient: true,
+            },
+          }),
+          ctx.db
+            .$queryRawUnsafe<
+              {
+                count: bigint;
+              }[]
+            >(
+              countSubjectsInClassQueryCompiled.sql,
+              ...countSubjectsInClassQueryCompiled.parameters,
+            )
+            .then((res) => Number(res[0]?.count) ?? 0),
+        ]);
 
       const subjectCoefficientMap = new Map(
         newGradeSubjects.map((subject) => [
@@ -935,8 +963,7 @@ export const studentRouter = createTRPCRouter({
           const avgScoredSubjects =
             totalCoefficient > 0 ? weightedTotal / totalCoefficient : 0;
 
-          const numberOfSubjectsInClass =
-            classRecord?.classSubjects.length ?? 0;
+          const numberOfSubjectsInClass = Number(countSubjectsInClass ?? 0);
 
           const haveAllScores =
             numberOfScoredSubjects >= numberOfSubjectsInClass;

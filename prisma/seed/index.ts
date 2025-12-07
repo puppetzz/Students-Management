@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 async function main() {
   // Clear existing data (optional - remove if you want to keep existing data)
   await prisma.examResults.deleteMany();
-  await prisma.classSubjects.deleteMany();
+  await prisma.trainingProgramSubjects.deleteMany();
   await prisma.students.deleteMany();
   await prisma.classes.deleteMany();
+  await prisma.trainingProgram.deleteMany();
   await prisma.subjects.deleteMany();
   await prisma.terms.deleteMany();
 
@@ -40,6 +41,7 @@ async function main() {
         code: "TLAK",
         name: "Tiểu Liên AK",
         description: "Môn học về tiểu liên AK",
+        scoreCoefficient: 2,
       },
     }),
     prisma.subjects.create({
@@ -47,6 +49,7 @@ async function main() {
         code: "STCB",
         name: "Súng trường CKC",
         description: "Môn học về súng trường CKC",
+        scoreCoefficient: 2,
       },
     }),
     prisma.subjects.create({
@@ -54,6 +57,7 @@ async function main() {
         code: "CTQS",
         name: "Chính trị quân sự",
         description: "Môn học chính trị quân sự",
+        scoreCoefficient: 1,
       },
     }),
     prisma.subjects.create({
@@ -61,6 +65,7 @@ async function main() {
         code: "KTQS",
         name: "Kỹ thuật quân sự",
         description: "Môn học kỹ thuật quân sự",
+        scoreCoefficient: 2,
       },
     }),
     prisma.subjects.create({
@@ -68,6 +73,7 @@ async function main() {
         code: "TDQS",
         name: "Thể dục quân sự",
         description: "Môn học thể dục quân sự",
+        scoreCoefficient: 1,
       },
     }),
     prisma.subjects.create({
@@ -75,70 +81,125 @@ async function main() {
         code: "PLQS",
         name: "Pháp luật quân sự",
         description: "Môn học pháp luật quân sự",
+        scoreCoefficient: 1,
       },
     }),
   ]);
 
-  // Create Classes for different courses
+  // Create Training Programs
+  const trainingPrograms = await Promise.all([
+    prisma.trainingProgram.create({
+      data: {
+        name: "Chương trình đào tạo Sĩ quan dự bị",
+        description: "Chương trình đào tạo sĩ quan dự bị cơ bản",
+      },
+    }),
+    prisma.trainingProgram.create({
+      data: {
+        name: "Chương trình đào tạo Hạ sĩ quan",
+        description: "Chương trình đào tạo hạ sĩ quan chuyên nghiệp",
+      },
+    }),
+    prisma.trainingProgram.create({
+      data: {
+        name: "Chương trình đào tạo Chiến sĩ",
+        description: "Chương trình đào tạo chiến sĩ cơ bản",
+      },
+    }),
+  ]);
+
+  const [programA, programB, programC] = trainingPrograms;
+
+  // Create TrainingProgramSubjects relationships
+  // Program A (Sĩ quan dự bị) - all subjects
+  for (const subject of subjects) {
+    await prisma.trainingProgramSubjects.create({
+      data: {
+        trainingProgramId: programA.id,
+        subjectId: subject.id,
+      },
+    });
+  }
+
+  // Program B (Hạ sĩ quan) - most subjects except PLQS
+  const programBSubjects = subjects.filter((s) => s.code !== "PLQS");
+  for (const subject of programBSubjects) {
+    await prisma.trainingProgramSubjects.create({
+      data: {
+        trainingProgramId: programB.id,
+        subjectId: subject.id,
+      },
+    });
+  }
+
+  // Program C (Chiến sĩ) - basic subjects only
+  const programCSubjectCodes = ["TLAK", "STCB", "TDQS", "CTQS"];
+  const programCSubjects = subjects.filter((s) =>
+    programCSubjectCodes.includes(s.code),
+  );
+  for (const subject of programCSubjects) {
+    await prisma.trainingProgramSubjects.create({
+      data: {
+        trainingProgramId: programC.id,
+        subjectId: subject.id,
+      },
+    });
+  }
+
+  // Create Classes for different courses with training programs
   const classes = await Promise.all([
-    // Classes for K71
+    // Classes for K71 - Program A
     prisma.classes.create({
       data: {
         name: "K71A1",
-        description: "Lớp A1 khóa 71",
+        description: "Lớp A1 khóa 71 - Sĩ quan dự bị",
         termId: k71.id,
+        trainingProgramId: programA.id,
       },
     }),
     prisma.classes.create({
       data: {
         name: "K71B1",
-        description: "Lớp B1 khóa 71",
+        description: "Lớp B1 khóa 71 - Hạ sĩ quan",
         termId: k71.id,
+        trainingProgramId: programB.id,
       },
     }),
-    // Classes for K72
+    // Classes for K72 - Mix of programs
     prisma.classes.create({
       data: {
         name: "K72A1",
-        description: "Lớp A1 khóa 72",
+        description: "Lớp A1 khóa 72 - Sĩ quan dự bị",
         termId: k72.id,
+        trainingProgramId: programA.id,
       },
     }),
     prisma.classes.create({
       data: {
         name: "K72A2",
-        description: "Lớp A2 khóa 72",
+        description: "Lớp A2 khóa 72 - Sĩ quan dự bị",
         termId: k72.id,
+        trainingProgramId: programA.id,
       },
     }),
     prisma.classes.create({
       data: {
         name: "K72B1",
-        description: "Lớp B1 khóa 72",
+        description: "Lớp B1 khóa 72 - Hạ sĩ quan",
         termId: k72.id,
+        trainingProgramId: programB.id,
       },
     }),
-    // Classes for K73
+    // Classes for K73 - Program C
     prisma.classes.create({
       data: {
         name: "K73A1",
-        description: "Lớp A1 khóa 73",
+        description: "Lớp A1 khóa 73 - Chiến sĩ",
         termId: k73.id,
+        trainingProgramId: programC.id,
       },
     }),
   ]);
-
-  // Create ClassSubjects relationships
-  for (const cls of classes) {
-    for (const subject of subjects) {
-      await prisma.classSubjects.create({
-        data: {
-          classId: cls.id,
-          subjectId: subject.id,
-        },
-      });
-    }
-  }
 
   // Student data arrays
   const lastNames = [
@@ -274,10 +335,20 @@ async function main() {
     }
   }
 
-  // Create ExamResults
+  // Create ExamResults based on training program subjects
   const examResults = [];
   for (const student of allStudents) {
-    for (const subject of subjects) {
+    // Get the class to find its training program
+    const studentClass = classes.find((c) => c.id === student.classId);
+    if (!studentClass) continue;
+
+    // Get subjects for this training program
+    const programSubjects = await prisma.trainingProgramSubjects.findMany({
+      where: { trainingProgramId: studentClass.trainingProgramId },
+      include: { subject: true },
+    });
+
+    for (const programSubject of programSubjects) {
       // Generate realistic scores based on conduct
       let baseScore = 7;
       if (student.conduct === EConduct.EXCELLENT) baseScore = 9;
@@ -291,7 +362,7 @@ async function main() {
 
       examResults.push({
         studentId: student.id,
-        subjectId: subject.id,
+        subjectId: programSubject.subjectId,
         scored: Math.round(score * 10) / 10, // Round to 1 decimal place
       });
     }
@@ -337,6 +408,7 @@ async function main() {
   }
 
   console.log("Seed data created successfully!");
+  console.log(`Created ${trainingPrograms.length} training programs`);
   console.log(`Created ${subjects.length} subjects`);
   console.log(`Created ${classes.length} classes`);
   console.log(`Created ${allStudents.length} students`);
@@ -344,7 +416,12 @@ async function main() {
 
   for (const cls of classes) {
     const studentCount = allStudents.filter((s) => s.classId === cls.id).length;
-    console.log(`  ${cls.name}: ${studentCount} students`);
+    const program = trainingPrograms.find(
+      (p) => p.id === cls.trainingProgramId,
+    );
+    console.log(
+      `  ${cls.name}: ${studentCount} students (${program?.name ?? "Unknown"})`,
+    );
   }
 
   console.log("Terms: K71 (2024), K72 (2025), K73 (2026)");

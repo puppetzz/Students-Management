@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   IconBook,
   IconBook2,
@@ -49,8 +49,14 @@ const data = [
   {
     key: "subjects",
     link: "/subjects",
-    label: "Quản Lý Môn Học",
+    label: "Môn Học",
     icon: IconBook2,
+  },
+  {
+    key: "training-programs",
+    link: "/training-programs",
+    label: "Chương Trình Đào Tạo",
+    icon: IconBook,
   },
   {
     key: "users",
@@ -68,6 +74,11 @@ export function SideBars() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+
+  // Check if device is mobile on mount only
+  useEffect(() => {
+    setIsMinimal(window.innerWidth < 768);
+  }, []);
 
   // Filter menu items based on user role
   const filteredData = useMemo(() => {
