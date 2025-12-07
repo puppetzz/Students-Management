@@ -107,10 +107,6 @@ const Terms = () => {
         accessorKey: "schoolYear",
         header: "Năm Học",
       },
-      {
-        accessorKey: "description",
-        header: "Mô Tả",
-      },
     ],
     [pageSize, page],
   );
