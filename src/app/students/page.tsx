@@ -176,7 +176,7 @@ const Students = () => {
 
   const table = useMantineReactTable({
     columns,
-    data: studentsQuery.data?.data ?? [],
+    data: (studentsQuery.data?.data ?? []) as TStudentInfoResponse[],
     enablePagination: false,
     enableStickyHeader: true,
     enableColumnPinning: true,
