@@ -1,10 +1,11 @@
-import { PrismaClient, EConduct } from "@prisma/client";
+import { PrismaClient, EConduct, EGender } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data (optional - remove if you want to keep existing data)
   await prisma.examResults.deleteMany();
+  await prisma.studentProfiles.deleteMany();
   await prisma.trainingProgramSubjects.deleteMany();
   await prisma.students.deleteMany();
   await prisma.classes.deleteMany();
@@ -42,6 +43,38 @@ async function main() {
         name: "Tiểu Liên AK",
         description: "Môn học về tiểu liên AK",
         scoreCoefficient: 2,
+        material: [
+          {
+            name: "Giáo trình Tiểu liên AK cơ bản",
+            unit: "cuốn",
+            amount: "1",
+            note: "Sách giáo khoa chính",
+          },
+          {
+            name: "Sách hướng dẫn sử dụng AK-47",
+            unit: "cuốn",
+            amount: "1",
+            note: "Tài liệu tham khảo",
+          },
+          {
+            name: "Tiểu liên AK mô phỏng",
+            unit: "khẩu",
+            amount: "1",
+            note: "Dụng cụ thực hành",
+          },
+          {
+            name: "Đạn tập",
+            unit: "viên",
+            amount: "20",
+            note: "Cho buổi thực hành",
+          },
+          {
+            name: "Thời gian thực hành",
+            unit: "giờ",
+            amount: "40",
+            note: "Tổng thời gian thực hành trong khóa học",
+          },
+        ],
       },
     }),
     prisma.subjects.create({
@@ -50,6 +83,44 @@ async function main() {
         name: "Súng trường CKC",
         description: "Môn học về súng trường CKC",
         scoreCoefficient: 2,
+        material: [
+          {
+            name: "Giáo trình Súng trường CKC",
+            unit: "cuốn",
+            amount: "1",
+            note: "Sách giáo khoa chính",
+          },
+          {
+            name: "Hướng dẫn bảo dưỡng súng trường",
+            unit: "cuốn",
+            amount: "1",
+            note: "Tài liệu hướng dẫn",
+          },
+          {
+            name: "Súng trường CKC",
+            unit: "khẩu",
+            amount: "1",
+            note: "Dụng cụ thực hành",
+          },
+          {
+            name: "Đạn tập",
+            unit: "viên",
+            amount: "15",
+            note: "Cho buổi thực hành",
+          },
+          {
+            name: "Dụng cụ vệ sinh súng",
+            unit: "bộ",
+            amount: "1",
+            note: "Bảo dưỡng thiết bị",
+          },
+          {
+            name: "Thời gian thực hành",
+            unit: "giờ",
+            amount: "35",
+            note: "Tổng thời gian thực hành trong khóa học",
+          },
+        ],
       },
     }),
     prisma.subjects.create({
@@ -58,6 +129,26 @@ async function main() {
         name: "Chính trị quân sự",
         description: "Môn học chính trị quân sự",
         scoreCoefficient: 1,
+        material: [
+          {
+            name: "Giáo trình Chính trị quân sự",
+            unit: "cuốn",
+            amount: "1",
+            note: "Sách giáo khoa chính",
+          },
+          {
+            name: "Tư tưởng Hồ Chí Minh về quân sự",
+            unit: "cuốn",
+            amount: "1",
+            note: "Tài liệu tham khảo",
+          },
+          {
+            name: "Thời gian học lý thuyết",
+            unit: "giờ",
+            amount: "20",
+            note: "Thời gian học trên lớp",
+          },
+        ],
       },
     }),
     prisma.subjects.create({
@@ -66,6 +157,44 @@ async function main() {
         name: "Kỹ thuật quân sự",
         description: "Môn học kỹ thuật quân sự",
         scoreCoefficient: 2,
+        material: [
+          {
+            name: "Giáo trình Kỹ thuật quân sự",
+            unit: "cuốn",
+            amount: "1",
+            note: "Sách giáo khoa chính",
+          },
+          {
+            name: "Sách hướng dẫn công binh",
+            unit: "cuốn",
+            amount: "1",
+            note: "Tài liệu chuyên ngành",
+          },
+          {
+            name: "Dụng cụ công binh",
+            unit: "bộ",
+            amount: "1",
+            note: "Dụng cụ thực hành",
+          },
+          {
+            name: "Máy đo",
+            unit: "chiếc",
+            amount: "1",
+            note: "Thiết bị đo đạc",
+          },
+          {
+            name: "Bản đồ địa hình",
+            unit: "tờ",
+            amount: "3",
+            note: "Bản đồ khu vực thực hành",
+          },
+          {
+            name: "Thời gian thực hành",
+            unit: "giờ",
+            amount: "45",
+            note: "Tổng thời gian thực hành trong khóa học",
+          },
+        ],
       },
     }),
     prisma.subjects.create({
@@ -74,6 +203,38 @@ async function main() {
         name: "Thể dục quân sự",
         description: "Môn học thể dục quân sự",
         scoreCoefficient: 1,
+        material: [
+          {
+            name: "Quy định về thể dục quân sự",
+            unit: "cuốn",
+            amount: "1",
+            note: "Tài liệu hướng dẫn",
+          },
+          {
+            name: "Đồng phục thể dục",
+            unit: "bộ",
+            amount: "2",
+            note: "Trang phục tập luyện",
+          },
+          {
+            name: "Giày thể thao",
+            unit: "đôi",
+            amount: "1",
+            note: "Giày chạy bộ chuyên dụng",
+          },
+          {
+            name: "Dụng cụ tập luyện",
+            unit: "bộ",
+            amount: "1",
+            note: "Thiết bị hỗ trợ tập luyện",
+          },
+          {
+            name: "Thời gian thực hành",
+            unit: "giờ",
+            amount: "30",
+            note: "Tổng thời gian tập luyện trong khóa học",
+          },
+        ],
       },
     }),
     prisma.subjects.create({
@@ -82,6 +243,26 @@ async function main() {
         name: "Pháp luật quân sự",
         description: "Môn học pháp luật quân sự",
         scoreCoefficient: 1,
+        material: [
+          {
+            name: "Pháp luật quân sự Việt Nam",
+            unit: "cuốn",
+            amount: "1",
+            note: "Sách giáo khoa chính",
+          },
+          {
+            name: "Các văn bản pháp quy quân sự",
+            unit: "tập",
+            amount: "1",
+            note: "Tài liệu pháp lý",
+          },
+          {
+            name: "Thời gian học lý thuyết",
+            unit: "giờ",
+            amount: "15",
+            note: "Thời gian học trên lớp",
+          },
+        ],
       },
     }),
   ]);
@@ -312,22 +493,46 @@ async function main() {
 
       const birthMonth = Math.floor(Math.random() * 12) + 1;
       const birthDay = Math.floor(Math.random() * 28) + 1;
+      const dayOfBirth = new Date(birthYear, birthMonth - 1, birthDay);
 
       // Generate unique VNEID with exactly 12 characters
       // Format: YYYYMMDDXXXX where YYYY is birth year, MM is birth month, DD is birth day, XXXX is unique counter
       const vneid = `${birthYear}${String(birthMonth).padStart(2, "0")}${String(birthDay).padStart(2, "0")}${String(studentCounter).padStart(4, "0")}`;
       studentCounter++;
 
+      // Generate random gender
+      const genders = [EGender.MALE, EGender.FEMALE];
+      const gender = genders[Math.floor(Math.random() * genders.length)]!;
+
+      // Create student record first
       const student = await prisma.students.create({
         data: {
           firstName,
           lastName,
-          dayOfBirth: new Date(birthYear, birthMonth - 1, birthDay),
-          hometown,
-          permanentAddress: `${Math.floor(Math.random() * 999) + 1} Đường ${lastName}, ${hometown}`,
           vneid,
           conduct,
           classId: classObj.id,
+        },
+      });
+
+      // Create student profile
+      await prisma.studentProfiles.create({
+        data: {
+          studentId: student.id,
+          gender,
+          dayOfBirth,
+          placeOfBirth: hometown,
+          hometown,
+          permanentAddress: `${Math.floor(Math.random() * 999) + 1} Đường ${lastName}, ${hometown}`,
+          phoneNumber: `09${Math.floor(Math.random() * 100000000)
+            .toString()
+            .padStart(8, "0")}`,
+          email: `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s+/g, "")}.${studentCounter}@example.com`,
+          fatherName: `${lastNames[Math.floor(Math.random() * lastNames.length)]!} ${firstNames[Math.floor(Math.random() * firstNames.length)]!}`,
+          motherName: `${lastNames[Math.floor(Math.random() * lastNames.length)]!} ${firstNames[Math.floor(Math.random() * firstNames.length)]!}`,
+          ethnicity: "Kinh",
+          religion: Math.random() > 0.7 ? "Phật giáo" : null,
+          educationLevel: "12/12",
         },
       });
 
@@ -411,7 +616,7 @@ async function main() {
   console.log(`Created ${trainingPrograms.length} training programs`);
   console.log(`Created ${subjects.length} subjects`);
   console.log(`Created ${classes.length} classes`);
-  console.log(`Created ${allStudents.length} students`);
+  console.log(`Created ${allStudents.length} students with profiles`);
   console.log("Distribution:");
 
   for (const cls of classes) {

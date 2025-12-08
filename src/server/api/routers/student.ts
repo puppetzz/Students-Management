@@ -49,9 +49,12 @@ export const studentRouter = createTRPCRouter({
 
       const studentsQuery = kyselyDB
         .selectFrom("students")
+        .leftJoin(
+          "student_profiles",
+          "students.id",
+          "student_profiles.student_id",
+        )
         .leftJoin("classes", "students.class_id", "classes.id")
-        .leftJoin("exam_results", "students.id", "exam_results.student_id")
-        .leftJoin("subjects", "exam_results.subject_id", "subjects.id")
         .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
         .$if(!!search, (qb) =>
           qb.where((eb) =>
@@ -68,7 +71,6 @@ export const studentRouter = createTRPCRouter({
           "students.first_name as firstName",
           "students.last_name as lastName",
           "students.vneid as vneid",
-          "students.day_of_birth as dayOfBirth",
           "students.avg_overall as avgOverall",
           "students.avg_scored_subjects as avgScoredSubjects",
           "students.conduct as conduct",
@@ -76,13 +78,33 @@ export const studentRouter = createTRPCRouter({
           sql<number>`MAX(classes.term_id)`.as("termId"),
           "students.created_at as createdAt",
           "students.updated_at as updatedAt",
-          "students.hometown as hometown",
-          "students.permanent_address as permanentAddress",
           "students.image_key as imageKey",
+          "student_profiles.day_of_birth as dayOfBirth",
+          "student_profiles.hometown as hometown",
+          "student_profiles.permanent_address as permanentAddress",
+          "student_profiles.gender as gender",
+          "student_profiles.email as email",
+          "student_profiles.phone_number as phoneNumber",
+          "student_profiles.place_of_birth as placeOfBirth",
+          "student_profiles.ethnicity as ethnicity",
+          "student_profiles.religion as religion",
+          "student_profiles.vneid_issued_date as vneidIssuedDate",
+          "student_profiles.vneid_issued_place as vneidIssuedPlace",
+          "student_profiles.education_level as educationLevel",
+          "student_profiles.youth_union_admission_date as youthUnionAdmissionDate",
+          "student_profiles.communist_party_admission_date as communistPartyAdmissionDate",
+          "student_profiles.father_name as fatherName",
+          "student_profiles.father_occupation as fatherOccupation",
+          "student_profiles.father_address as fatherAddress",
+          "student_profiles.father_day_of_birth as fatherDayOfBirth",
+          "student_profiles.mother_name as motherName",
+          "student_profiles.mother_occupation as motherOccupation",
+          "student_profiles.mother_address as motherAddress",
+          "student_profiles.mother_day_of_birth as motherDayOfBirth",
         ])
         .$if(!!take, (qb) => qb.limit(take!))
         .$if(!!skip, (qb) => qb.offset(skip!))
-        .groupBy("students.id")
+        .groupBy(["students.id", "student_profiles.id"])
         .orderBy("students.first_name", "asc")
         .compile();
 
@@ -143,7 +165,6 @@ export const studentRouter = createTRPCRouter({
           "students.first_name as firstName",
           "students.last_name as lastName",
           "students.vneid as vneid",
-          "students.day_of_birth as dayOfBirth",
           "students.avg_overall as avgOverall",
           "students.avg_scored_subjects as avgScoredSubjects",
           "students.conduct as conduct",
@@ -219,7 +240,6 @@ export const studentRouter = createTRPCRouter({
           id: true,
           firstName: true,
           lastName: true,
-          dayOfBirth: true,
           avgOverall: true,
           avgScoredSubjects: true,
           conduct: true,
