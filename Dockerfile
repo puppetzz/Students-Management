@@ -1,23 +1,33 @@
-# Use Node LTS
-FROM node:24-alpine
+# --- Base Node image ---
+FROM node:24-alpine AS base
 
-# Set working directory
+# --- Build the application ---
+FROM base AS runner
 WORKDIR /app
 
-# Install system dependencies for Next.js
 RUN apk add --no-cache libc6-compat
 
-# Copy package files only first (để tận dụng cache)
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 
-# Install dependencies
-RUN npm install
-
-# Copy toàn bộ mã nguồn
 COPY . .
 
-# Expose port Next.js dev server
-EXPOSE 3000
+# Use the appropriate install command based on the lockfile
+RUN \
+  if [ -f package-lock.json ]; then npm install; \
+  elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+  elif [ -f pnpm-lock.yaml ]; then npm install -g pnpm && pnpm install --frozen-lockfile; \
+  else echo "No lockfile found." && exit 1; \
+  fi
 
-# Dev mode does NOT need non-root user
-CMD ["npm", "run", "dev"]
+RUN npm run build
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Next.js requires a non-root user
+RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nextjs
+
+USER nextjs
+
+EXPOSE 3000
+CMD ["npm", "start"]
