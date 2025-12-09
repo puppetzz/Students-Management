@@ -40,14 +40,14 @@ CREATE TABLE "student_profiles" (
 -- Migrate existing data from students table to student_profiles table
 -- Create a profile record for every student
 INSERT INTO "student_profiles" (
-    "id", 
+    "student_id",
     "gender", 
     "day_of_birth", 
     "hometown", 
     "permanent_address"
 )
 SELECT 
-    s."id",
+    s."id" as student_id,
     'MALE'::"EGender" as gender, -- Default gender since it's required but doesn't exist in students table
     COALESCE(s."day_of_birth", CURRENT_TIMESTAMP) as day_of_birth, -- Use current timestamp as default if null
     s."hometown",
