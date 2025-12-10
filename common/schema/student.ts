@@ -1,49 +1,83 @@
 import * as z from "zod";
+import { EConduct, EGender } from "@prisma/client";
 
 export const createStudentSchema = z.object({
+  classId: z.number().min(1, "Lớp không hợp lệ"),
   firstName: z.string().min(1, "Họ và tên đệm không được để trống"),
   lastName: z.string().min(1, "Tên không được để trống"),
-  dayOfBirth: z
-    .date()
-    .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại"),
-  classId: z.number().min(1, "Lớp không hợp lệ"),
-  hometown: z.string().min(1, "Quê quán không được để trống").optional(),
-  permanentAddress: z
-    .string()
-    .min(1, "Địa chỉ thường trú không được để trống")
-    .optional(),
   vneid: z
     .string()
     .min(1, "Số căn cước công dân không được để trống")
     .regex(/^\d{12}$/, "Số căn cước công dân phải có 12 chữ số"),
-  imageKey: z.string().optional().nullable(),
+  conduct: z.nativeEnum(EConduct).optional(),
+  imageKey: z.string().optional(),
+  profile: z.object({
+    gender: z.nativeEnum(EGender),
+    dayOfBirth: z
+      .date()
+      .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại"),
+    placeOfBirth: z.string().optional(),
+    ethnicity: z.string().optional(),
+    religion: z.string().optional(),
+    vneidIssuedDate: z.date().optional(),
+    vneidIssuedPlace: z.string().optional(),
+    hometown: z.string().min(1, "Quê quán không được để trống").optional(),
+    permanentAddress: z.string().optional(),
+    educationLevel: z.string().optional(),
+    email: z.string().email("Email không hợp lệ").optional(),
+    phoneNumber: z.string().optional(),
+    youthUnionAdmissionDate: z.date().optional(),
+    communistPartyAdmissionDate: z.date().optional(),
+    fatherName: z.string().optional(),
+    fatherOccupation: z.string().optional(),
+    fatherAddress: z.string().optional(),
+    fatherDayOfBirth: z.date().optional(),
+    motherName: z.string().optional(),
+    motherOccupation: z.string().optional(),
+    motherAddress: z.string().optional(),
+    motherDayOfBirth: z.date().optional(),
+  }),
 });
 
-export const updateStudentSchema = createStudentSchema.extend({
+export const updateStudentSchema = z.object({
   id: z.number().min(1, "ID học viên không hợp lệ"),
+  classId: z.number().min(1, "Lớp không hợp lệ").optional(),
   firstName: z.string().min(1, "Họ và tên đệm không được để trống").optional(),
   lastName: z.string().min(1, "Tên không được để trống").optional(),
-  dayOfBirth: z
-    .date()
-    .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
-    .optional(),
-  classId: z.number().min(1, "Lớp không hợp lệ").optional(),
-  hometown: z
-    .string()
-    .min(1, "Quê quán không được để trống")
-    .nullable()
-    .optional(),
-  permanentAddress: z
-    .string()
-    .min(1, "Địa chỉ thường trú không được để trống")
-    .nullable()
-    .optional(),
   vneid: z
     .string()
-    .min(1, "Số căn cước công dân không được để trống")
-    .regex(/^\d{12,13}$/, "Số căn cước công dân phải có 12 hoặc 13 chữ số"),
-  termId: z.number().min(1, "Khóa không hợp lệ").optional(),
-  imageUrl: z.string().nullable().optional(),
+    .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số")
+    .optional(),
+  imageKey: z.string().optional(),
+  profile: z
+    .object({
+      gender: z.nativeEnum(EGender).optional(),
+      dayOfBirth: z
+        .date()
+        .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
+        .optional(),
+      placeOfBirth: z.string().optional(),
+      ethnicity: z.string().optional(),
+      religion: z.string().optional(),
+      vneidIssuedDate: z.date().optional(),
+      vneidIssuedPlace: z.string().optional(),
+      hometown: z.string().min(1, "Quê quán không được để trống").optional(),
+      permanentAddress: z.string().optional(),
+      educationLevel: z.string().optional(),
+      email: z.string().email("Email không hợp lệ").optional(),
+      phoneNumber: z.string().optional(),
+      youthUnionAdmissionDate: z.date().optional(),
+      communistPartyAdmissionDate: z.date().optional(),
+      fatherName: z.string().optional(),
+      fatherOccupation: z.string().optional(),
+      fatherAddress: z.string().optional(),
+      fatherDayOfBirth: z.date().optional(),
+      motherName: z.string().optional(),
+      motherOccupation: z.string().optional(),
+      motherAddress: z.string().optional(),
+      motherDayOfBirth: z.date().optional(),
+    })
+    .optional(),
 });
 
 export const updateGradesSchema = z.object({
@@ -79,7 +113,7 @@ export const importStudentsFromExcelSchema = z.object({
       vneid: z
         .string()
         .min(1, "Số căn cước công dân không được để trống")
-        .regex(/^\d{12,13}$/, "Số căn cước công dân phải có 12 hoặc 13 chữ số"),
+        .regex(/^\d{12}$/, "Số căn cước công dân phải có 12 chữ số"),
     }),
   ),
 });

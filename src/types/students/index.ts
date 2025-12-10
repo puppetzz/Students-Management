@@ -1,4 +1,4 @@
-import type { EConduct } from "@prisma/client";
+import type { EConduct, EGender } from "@prisma/client";
 import type { TSubjectForClass } from "../subjects";
 import type * as z from "zod";
 import type {
@@ -15,7 +15,6 @@ export type TStudent = {
   firstName: string;
   lastName: string;
   vneid: string;
-  dayOfBirth: Date;
   avgOverall: number | null;
   avgScoredSubjects: number;
   conduct: EConduct | null;
@@ -29,6 +28,26 @@ export type TStudentInfoResponse = TStudent & {
   hometown: string | null;
   permanentAddress: string | null;
   imageUrl: string | null;
+  dayOfBirth: Date;
+  gender: EGender;
+  email: string | null;
+  phoneNumber: string | null;
+  placeOfBirth: string | null;
+  ethnicity: string | null;
+  religion: string | null;
+  vneidIssuedDate: Date | null;
+  vneidIssuedPlace: string | null;
+  educationLevel: string | null;
+  youthUnionAdmissionDate: Date | null;
+  communistPartyAdmissionDate: Date | null;
+  fatherName: string | null;
+  fatherOccupation: string | null;
+  fatherAddress: string | null;
+  fatherDayOfBirth: Date | null;
+  motherName: string | null;
+  motherOccupation: string | null;
+  motherAddress: string | null;
+  motherDayOfBirth: Date | null;
 };
 
 export type TStudentWithGradesResponse = TStudent & {

@@ -1,4 +1,4 @@
-import { EConduct } from "@prisma/client";
+import { EConduct, EGender } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
@@ -13,6 +13,7 @@ import { EUserRole } from "~/server/kysely/enums";
 import { kyselyDB } from "~/server/kysely/db";
 import { env } from "~/env";
 import { deleteFromS3 } from "utils/s3.server";
+import { profile } from "console";
 
 const getFinalClassification = (
   scoreClassification: EGradeClassification | null,
@@ -272,22 +273,48 @@ export const studentRouter = createTRPCRouter({
   create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
+        classId: z.number(),
         firstName: z.string(),
         lastName: z.string(),
-        dayOfBirth: z
-          .date()
-          .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại"),
-        classId: z.number(),
-        hometown: z.string().optional(),
-        permanentAddress: z.string().optional(),
         vneid: z.string(),
         conduct: z
           .enum(Object.values(EConduct) as [string, ...string[]])
           .optional(),
         imageKey: z.string().optional(),
+        profile: z.object({
+          gender: z.nativeEnum(EGender),
+          dayOfBirth: z
+            .date()
+            .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại"),
+          placeOfBirth: z.string().optional(),
+          ethnicity: z.string().optional(),
+          religion: z.string().optional(),
+          vneidIssuedDate: z.date().optional(),
+          vneidIssuedPlace: z.string().optional(),
+          hometown: z
+            .string()
+            .min(1, "Quê quán không được để trống")
+            .optional(),
+          permanentAddress: z.string().optional(),
+          educationLevel: z.string().optional(),
+          email: z.string().email("Email không hợp lệ").optional(),
+          phoneNumber: z.string().optional(),
+          youthUnionAdmissionDate: z.date().optional(),
+          communistPartyAdmissionDate: z.date().optional(),
+          fatherName: z.string().optional(),
+          fatherOccupation: z.string().optional(),
+          fatherAddress: z.string().optional(),
+          fatherDayOfBirth: z.date().optional(),
+          motherName: z.string().optional(),
+          motherOccupation: z.string().optional(),
+          motherAddress: z.string().optional(),
+          motherDayOfBirth: z.date().optional(),
+        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const { profile, conduct, ...studentData } = input;
+
       const classExists = await ctx.db.classes.findFirst({
         where: {
           id: input.classId,
@@ -301,36 +328,75 @@ export const studentRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.students.create({
-        data: {
-          ...input,
-          conduct: input.conduct ? (input.conduct as EConduct) : undefined,
-        },
+      const createdStudent = await ctx.db.$transaction(async (tx) => {
+        const createdStudent = await tx.students.create({
+          data: {
+            ...studentData,
+            conduct: conduct ? (conduct as EConduct) : undefined,
+          },
+        });
+
+        await tx.studentProfiles.create({
+          data: {
+            ...profile,
+            studentId: createdStudent.id,
+          },
+        });
+
+        return createdStudent;
       });
+
+      return createdStudent;
     }),
 
   updateInfo: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
+        classId: z.number().optional(),
         firstName: z.string().optional(),
         lastName: z.string().optional(),
-        dayOfBirth: z
-          .date()
-          .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
-          .optional(),
-        classId: z.number().optional(),
-        hometown: z.string().min(1, "Quê quán không được để trống").optional(),
-        permanentAddress: z.string().optional(),
         vneid: z
           .string()
           .regex(/^\d{12}$/, "Số căn cước công dân phải có đúng 12 chữ số")
           .optional(),
         imageKey: z.string().optional(),
+        profile: z
+          .object({
+            gender: z.nativeEnum(EGender).optional(),
+            dayOfBirth: z
+              .date()
+              .max(new Date(), "Ngày sinh không được lớn hơn ngày hiện tại")
+              .optional(),
+            placeOfBirth: z.string().optional(),
+            ethnicity: z.string().optional(),
+            religion: z.string().optional(),
+            vneidIssuedDate: z.date().optional(),
+            vneidIssuedPlace: z.string().optional(),
+            hometown: z
+              .string()
+              .min(1, "Quê quán không được để trống")
+              .optional(),
+            permanentAddress: z.string().optional(),
+            educationLevel: z.string().optional(),
+            email: z.string().email("Email không hợp lệ").optional(),
+            phoneNumber: z.string().optional(),
+            youthUnionAdmissionDate: z.date().optional(),
+            communistPartyAdmissionDate: z.date().optional(),
+            fatherName: z.string().optional(),
+            fatherOccupation: z.string().optional(),
+            fatherAddress: z.string().optional(),
+            fatherDayOfBirth: z.date().optional(),
+            motherName: z.string().optional(),
+            motherOccupation: z.string().optional(),
+            motherAddress: z.string().optional(),
+            motherDayOfBirth: z.date().optional(),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, imageKey, ...data } = input;
+      const { id, imageKey, profile, ...data } = input;
 
       // If imageKey is being updated, delete the old image from S3
       if (imageKey !== undefined) {
@@ -360,6 +426,11 @@ export const studentRouter = createTRPCRouter({
         data: {
           ...data,
           ...(imageKey !== undefined && { imageKey }),
+          studentProfiles: {
+            update: {
+              ...profile,
+            },
+          },
         },
       });
     }),
