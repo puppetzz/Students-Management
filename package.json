@@ -46,7 +46,7 @@
     "dayjs": "^1.11.18",
     "kysely": "^0.28.8",
     "mantine-react-table": "^2.0.0-beta.9",
-    "next": "^15.2.3",
+    "next": "15.5.7",
     "next-auth": "^5.0.0-beta.30",
     "prisma-kysely": "^2.2.1",
     "react": "^19.0.0",
