@@ -22,9 +22,8 @@ import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 import { utils, writeFileXLSX } from "xlsx";
 
 const Students = () => {
-  const [selectedStudent, setSelectedStudent] = useState<TUpdateStudent | null>(
-    null,
-  );
+  const [selectedStudent, setSelectedStudent] =
+    useState<TStudentInfoResponse | null>(null);
 
   const searchParams = useSearchParams();
 
