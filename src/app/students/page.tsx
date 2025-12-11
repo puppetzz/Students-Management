@@ -16,10 +16,9 @@ import {
   CreateStudentModal,
   ViewAndEditModal,
   ImportExcelModal,
+  ExportStudentModal,
 } from "../_components/students";
 import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
-
-import { utils, writeFileXLSX } from "xlsx";
 
 const Students = () => {
   const [selectedStudent, setSelectedStudent] =
@@ -42,6 +41,10 @@ const Students = () => {
   const [
     openedImportExcelModal,
     { open: openImportExcelModal, close: closeImportExcelModal },
+  ] = useDisclosure(false);
+  const [
+    openedExportModal,
+    { open: openExportModal, close: closeExportModal },
   ] = useDisclosure(false);
 
   // Fetch Data
@@ -222,68 +225,7 @@ const Students = () => {
   };
 
   const handleExportToExcel = () => {
-    if (!studentsQuery.data?.data) return;
-
-    // Create two-row header structure
-    const worksheetData: (string | number)[][] = [];
-
-    // First row: Keys (technical headers)
-    const technicalHeaders = [
-      "STT",
-      "FN",
-      "LN",
-      "DOB",
-      "CCCD",
-      "HOMETOWN",
-      "ADDRESS",
-    ];
-
-    // Second row: Vietnamese names (display headers)
-    const displayHeaders = [
-      "STT",
-      "Tên",
-      "Họ",
-      "Ngày Sinh",
-      "CCCD",
-      "Quê Quán",
-      "Trú Quán",
-    ];
-
-    worksheetData.push(technicalHeaders);
-    worksheetData.push(displayHeaders);
-
-    // Add student data rows
-    studentsQuery.data.data.forEach((student, index) => {
-      worksheetData.push([
-        index + 1,
-        student.firstName,
-        student.lastName,
-        student.dayOfBirth
-          ? dayjs(student.dayOfBirth).format("DD/MM/YYYY")
-          : "",
-        student.vneid ?? "",
-        student.hometown ?? "",
-        student.permanentAddress ?? "",
-      ]);
-    });
-
-    const worksheet = utils.aoa_to_sheet(worksheetData);
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, "Danh Sách Học Viên");
-
-    // Set column widths
-    worksheet["!cols"] = [
-      { wch: 5 }, // STT
-      { wch: 15 }, // FN (Tên)
-      { wch: 15 }, // LN (Họ)
-      { wch: 12 }, // DOB (Ngày Sinh)
-      { wch: 15 }, // CCCD
-      { wch: 20 }, // HOMETOWN (Quê Quán)
-      { wch: 25 }, // ADDRESS (Trú Quán)
-    ];
-
-    const fileName = `danh_sach_hoc_vien_${dayjs().format("YYYY_MM_DD")}.xlsx`;
-    writeFileXLSX(workbook, fileName);
+    openExportModal();
   };
 
   return (
@@ -388,6 +330,11 @@ const Students = () => {
         onClose={closeImportExcelModal}
         initialTermId={termId?.toString()}
         initialClassId={classId?.toString()}
+      />
+      <ExportStudentModal
+        opened={openedExportModal}
+        onClose={closeExportModal}
+        students={studentsQuery.data?.data ?? []}
       />
     </>
   );
