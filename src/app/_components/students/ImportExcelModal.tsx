@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { EGender } from "@prisma/client";
 
 dayjs.extend(customParseFormat);
 
@@ -134,6 +135,28 @@ export const ImportExcelModal = ({
     return null;
   };
 
+  const parseGender = (genderStr: string): EGender | undefined => {
+    const normalized = genderStr?.trim().toLowerCase();
+    switch (normalized) {
+      case "nam":
+      case "male":
+      case "m":
+        return EGender.MALE;
+      case "nữ":
+      case "nu":
+      case "female":
+      case "f":
+        return EGender.FEMALE;
+      case "khác":
+      case "khac":
+      case "other":
+      case "o":
+        return EGender.OTHER;
+      default:
+        return undefined;
+    }
+  };
+
   const onConfirmImport = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -200,7 +223,9 @@ export const ImportExcelModal = ({
             permanentAddress: row.PERMANENTADDRESS
               ? String(row.PERMANENTADDRESS).trim()
               : undefined,
-            gender: row.GENDER ? String(row.GENDER).trim() : undefined,
+            gender: row.GENDER
+              ? parseGender(String(row.GENDER).trim())
+              : undefined,
             email: row.EMAIL ? String(row.EMAIL).trim() : undefined,
             phoneNumber: row.PHONENUMBER
               ? String(row.PHONENUMBER).trim()

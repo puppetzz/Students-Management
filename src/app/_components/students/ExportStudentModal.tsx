@@ -5,6 +5,7 @@ import { useState } from "react";
 import { utils, writeFileXLSX } from "xlsx";
 import dayjs from "dayjs";
 import type { TStudentInfoResponse } from "~/types/students";
+import { EGender } from "@prisma/client";
 
 interface ExportStudentModalProps {
   opened: boolean;
@@ -67,6 +68,19 @@ export const ExportStudentModal = ({
     setSelectedFields(newSelected);
   };
 
+  const formatGenderForExport = (gender: EGender): string => {
+    switch (gender) {
+      case EGender.MALE:
+        return "Nam";
+      case EGender.FEMALE:
+        return "Nữ";
+      case EGender.OTHER:
+        return "Khác";
+      default:
+        return "";
+    }
+  };
+
   const handleExport = () => {
     if (students.length === 0) {
       alert("Không có dữ liệu học viên để xuất");
@@ -115,6 +129,9 @@ export const ExportStudentModal = ({
 
         if (value === null || value === undefined) {
           row.push("");
+        } else if (fieldKey === "gender" && typeof value === "string") {
+          // Convert gender enum to Vietnamese
+          row.push(formatGenderForExport(value as EGender));
         } else if (dateFields.has(fieldKey) && value instanceof Date) {
           row.push(dayjs(value).format("DD/MM/YYYY"));
         } else if (typeof value === "object") {
