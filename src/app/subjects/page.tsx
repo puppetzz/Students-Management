@@ -312,7 +312,7 @@ const Subjects = () => {
             className="left-4 h-12 w-12 sm:h-16 sm:w-16"
           />
           <h1 className="text-center text-2xl font-bold sm:text-3xl">
-            Quản Lý Môn Học
+            Quản Lý Khóa Học
           </h1>
           <img
             src="/TQSQK5.png"

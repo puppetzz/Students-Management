@@ -319,7 +319,9 @@ const TrainingPrograms = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Chương Trình Mới</Button>
+          <Button onClick={handleOpenCreateModal}>
+            Thêm Chương Trình Đào Tạo
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -509,12 +511,13 @@ const TrainingPrograms = () => {
       <Modal
         opened={createModalOpened}
         onClose={closeCreateModal}
-        title="Thêm Chương Trình Mới"
+        title="Thêm Chương Trình Đào Tạo"
         styles={{
           title: {
             fontWeight: "bold",
           },
         }}
+        size="lg"
       >
         <form onSubmit={handleSubmitCreate(onSubmitCreateForm)}>
           <TextInput
