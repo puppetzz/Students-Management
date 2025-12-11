@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  Modal,
-  Button,
-  Group,
-  Checkbox,
-  Stack,
-  Text,
-  Center,
-} from "@mantine/core";
-import { useState, useMemo } from "react";
+import { Modal, Button, Group, Checkbox, Stack, Text } from "@mantine/core";
+import { useState } from "react";
 import { utils, writeFileXLSX } from "xlsx";
 import dayjs from "dayjs";
 import type { TStudentInfoResponse } from "~/types/students";

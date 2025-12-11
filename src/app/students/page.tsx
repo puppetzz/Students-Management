@@ -334,7 +334,7 @@ const Students = () => {
       <ExportStudentModal
         opened={openedExportModal}
         onClose={closeExportModal}
-        students={studentsQuery.data?.data ?? []}
+        students={(studentsQuery.data?.data ?? []) as TStudentInfoResponse[]}
       />
     </>
   );

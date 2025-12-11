@@ -29,10 +29,29 @@ type ExcelStudentRowData = {
   STT?: string | number;
   FN?: string; // First Name (Tên)
   LN?: string; // Last Name (Họ)
-  DOB?: string; // Date of Birth (Ngày Sinh)
-  CCCD?: string;
+  DAYOFBIRTH?: string; // Date of Birth (Ngày Sinh)
+  VNEID?: string; // CCCD
   HOMETOWN?: string; // Quê Quán
-  ADDRESS?: string; // Trú Quán
+  PERMANENTADDRESS?: string; // Trú Quán
+  GENDER?: string; // Giới Tính
+  EMAIL?: string;
+  PHONENUMBER?: string; // Số Điện Thoại
+  PLACEOFBIRTH?: string; // Nơi Sinh
+  ETHNICITY?: string; // Dân Tộc
+  RELIGION?: string; // Tôn Giáo
+  VNEIDISSUEDDATE?: string; // Ngày Cấp CCCD
+  VNEIDISSUEDPLACE?: string; // Nơi Cấp CCCD
+  EDUCATIONLEVEL?: string; // Trình Độ Học Vấn
+  YOUTHUNIONADMISSIONDATE?: string; // Ngày Vào Đoàn
+  COMMUNISTPARTYADMISSIONDATE?: string; // Ngày Vào Đảng
+  FATHERNAME?: string; // Tên Cha
+  FATHEROCCUPATION?: string; // Nghề Nghiệp Cha
+  FATHERADDRESS?: string; // Địa Chỉ Cha
+  FATHERDAYOFBIRTH?: string; // Ngày Sinh Cha
+  MOTHERNAME?: string; // Tên Mẹ
+  MOTHEROCCUPATION?: string; // Nghề Nghiệp Mẹ
+  MOTHERADDRESS?: string; // Địa Chỉ Mẹ
+  MOTHERDAYOFBIRTH?: string; // Ngày Sinh Mẹ
   [key: string]: string | number | undefined;
 };
 
@@ -146,28 +165,81 @@ export const ImportExcelModal = ({
             !isNaN(Number(row.STT)) &&
             !!row.FN &&
             !!row.LN &&
-            !!row.CCCD &&
+            !!row.VNEID &&
             row.FN !== "Tên" && // Skip the Vietnamese header row
             row.LN !== "Họ",
         )
         .map((row) => {
           const firstName = row.FN?.trim() ?? "";
           const lastName = row.LN?.trim() ?? "";
-          const dayOfBirth = row.DOB ? parseVietnameseDate(row.DOB) : null;
-
-          if (!dayOfBirth) {
-            console.warn(
-              `Invalid date format for student: ${firstName} ${lastName}`,
-            );
-          }
+          const dayOfBirth = row.DAYOFBIRTH
+            ? parseVietnameseDate(row.DAYOFBIRTH)
+            : null;
+          const vneidIssuedDate = row.VNEIDISSUEDDATE
+            ? parseVietnameseDate(row.VNEIDISSUEDDATE)
+            : null;
+          const youthUnionAdmissionDate = row.YOUTHUNIONADMISSIONDATE
+            ? parseVietnameseDate(row.YOUTHUNIONADMISSIONDATE)
+            : null;
+          const communistPartyAdmissionDate = row.COMMUNISTPARTYADMISSIONDATE
+            ? parseVietnameseDate(row.COMMUNISTPARTYADMISSIONDATE)
+            : null;
+          const fatherDayOfBirth = row.FATHERDAYOFBIRTH
+            ? parseVietnameseDate(row.FATHERDAYOFBIRTH)
+            : null;
+          const motherDayOfBirth = row.MOTHERDAYOFBIRTH
+            ? parseVietnameseDate(row.MOTHERDAYOFBIRTH)
+            : null;
 
           return {
             firstName,
             lastName,
-            vneid: String(row.CCCD!).trim(),
+            vneid: String(row.VNEID!).trim(),
             dayOfBirth: dayOfBirth ?? new Date(),
-            hometown: row.HOMETOWN ? String(row.HOMETOWN) : undefined,
-            permanentAddress: row.ADDRESS ? String(row.ADDRESS) : undefined,
+            hometown: row.HOMETOWN ? String(row.HOMETOWN).trim() : undefined,
+            permanentAddress: row.PERMANENTADDRESS
+              ? String(row.PERMANENTADDRESS).trim()
+              : undefined,
+            gender: row.GENDER ? String(row.GENDER).trim() : undefined,
+            email: row.EMAIL ? String(row.EMAIL).trim() : undefined,
+            phoneNumber: row.PHONENUMBER
+              ? String(row.PHONENUMBER).trim()
+              : undefined,
+            placeOfBirth: row.PLACEOFBIRTH
+              ? String(row.PLACEOFBIRTH).trim()
+              : undefined,
+            ethnicity: row.ETHNICITY ? String(row.ETHNICITY).trim() : undefined,
+            religion: row.RELIGION ? String(row.RELIGION).trim() : undefined,
+            vneidIssuedDate: vneidIssuedDate ?? undefined,
+            vneidIssuedPlace: row.VNEIDISSUEDPLACE
+              ? String(row.VNEIDISSUEDPLACE).trim()
+              : undefined,
+            educationLevel: row.EDUCATIONLEVEL
+              ? String(row.EDUCATIONLEVEL).trim()
+              : undefined,
+            youthUnionAdmissionDate: youthUnionAdmissionDate ?? undefined,
+            communistPartyAdmissionDate:
+              communistPartyAdmissionDate ?? undefined,
+            fatherName: row.FATHERNAME
+              ? String(row.FATHERNAME).trim()
+              : undefined,
+            fatherOccupation: row.FATHEROCCUPATION
+              ? String(row.FATHEROCCUPATION).trim()
+              : undefined,
+            fatherAddress: row.FATHERADDRESS
+              ? String(row.FATHERADDRESS).trim()
+              : undefined,
+            fatherDayOfBirth: fatherDayOfBirth ?? undefined,
+            motherName: row.MOTHERNAME
+              ? String(row.MOTHERNAME).trim()
+              : undefined,
+            motherOccupation: row.MOTHEROCCUPATION
+              ? String(row.MOTHEROCCUPATION).trim()
+              : undefined,
+            motherAddress: row.MOTHERADDRESS
+              ? String(row.MOTHERADDRESS).trim()
+              : undefined,
+            motherDayOfBirth: motherDayOfBirth ?? undefined,
             classId: Number(classId),
           };
         })

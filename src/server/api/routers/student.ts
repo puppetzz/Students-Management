@@ -1125,9 +1125,28 @@ export const studentRouter = createTRPCRouter({
             lastName: z.string().min(1),
             dayOfBirth: z.date(),
             classId: z.number().min(1),
+            vneid: z.string().regex(/^\d{12}$/),
+            gender: z.nativeEnum(EGender).optional(),
+            placeOfBirth: z.string().optional(),
+            ethnicity: z.string().optional(),
+            religion: z.string().optional(),
+            vneidIssuedDate: z.date().optional(),
+            vneidIssuedPlace: z.string().optional(),
             hometown: z.string().optional(),
             permanentAddress: z.string().optional(),
-            vneid: z.string().regex(/^\d{12}$/),
+            educationLevel: z.string().optional(),
+            email: z.string().email("Email không hợp lệ").optional(),
+            phoneNumber: z.string().optional(),
+            youthUnionAdmissionDate: z.date().optional(),
+            communistPartyAdmissionDate: z.date().optional(),
+            fatherName: z.string().optional(),
+            fatherOccupation: z.string().optional(),
+            fatherAddress: z.string().optional(),
+            fatherDayOfBirth: z.date().optional(),
+            motherName: z.string().optional(),
+            motherOccupation: z.string().optional(),
+            motherAddress: z.string().optional(),
+            motherDayOfBirth: z.date().optional(),
           }),
         ),
       }),
@@ -1163,18 +1182,70 @@ export const studentRouter = createTRPCRouter({
         });
       }
 
-      // Create new students
-      await ctx.db.students.createMany({
-        data: newStudents.map((student) => ({
-          firstName: student.firstName,
-          lastName: student.lastName,
-          dayOfBirth: student.dayOfBirth,
-          classId: student.classId,
-          hometown: student.hometown,
-          permanentAddress: student.permanentAddress,
-          vneid: student.vneid,
-          avgScoredSubjects: 0,
-        })),
+      // Create new students with their profiles
+      await ctx.db.$transaction(async (trx) => {
+        for (const student of newStudents) {
+          const {
+            dayOfBirth,
+            gender,
+            placeOfBirth,
+            ethnicity,
+            religion,
+            vneidIssuedDate,
+            vneidIssuedPlace,
+            hometown,
+            permanentAddress,
+            educationLevel,
+            email,
+            phoneNumber,
+            youthUnionAdmissionDate,
+            communistPartyAdmissionDate,
+            fatherName,
+            fatherOccupation,
+            fatherAddress,
+            fatherDayOfBirth,
+            motherName,
+            motherOccupation,
+            motherAddress,
+            motherDayOfBirth,
+            ...studentData
+          } = student;
+
+          const createdStudent = await trx.students.create({
+            data: {
+              ...studentData,
+              avgScoredSubjects: 0,
+            },
+          });
+
+          await trx.studentProfiles.create({
+            data: {
+              studentId: createdStudent.id,
+              dayOfBirth: dayOfBirth,
+              gender: gender ?? EGender.MALE,
+              placeOfBirth,
+              ethnicity,
+              religion,
+              vneidIssuedDate,
+              vneidIssuedPlace,
+              hometown,
+              permanentAddress,
+              educationLevel,
+              email,
+              phoneNumber,
+              youthUnionAdmissionDate,
+              communistPartyAdmissionDate,
+              fatherName,
+              fatherOccupation,
+              fatherAddress,
+              fatherDayOfBirth,
+              motherName,
+              motherOccupation,
+              motherAddress,
+              motherDayOfBirth,
+            },
+          });
+        }
       });
 
       return {
