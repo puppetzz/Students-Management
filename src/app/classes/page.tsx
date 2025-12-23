@@ -253,7 +253,9 @@ const Classes = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Lớp</Button>
+          <Button onClick={handleOpenCreateModal} color="green">
+            Thêm Lớp
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2">

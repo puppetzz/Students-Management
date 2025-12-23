@@ -319,7 +319,7 @@ const TrainingPrograms = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>
+          <Button onClick={handleOpenCreateModal} color="green">
             Thêm Chương Trình Đào Tạo
           </Button>
         </div>

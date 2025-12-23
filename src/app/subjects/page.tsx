@@ -322,7 +322,9 @@ const Subjects = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Môn Học</Button>
+          <Button onClick={handleOpenCreateModal} color="green">
+            Thêm Môn Học
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2 overflow-x-auto">
