@@ -72,7 +72,9 @@ export const trainingProgramsRouter = createTRPCRouter({
         .compile();
 
       const countQueryCompiled = programsQuery
-        .select((eb) => eb.fn.count("training_programs.id").as("count"))
+        .select((eb) =>
+          eb.fn.count("training_programs.id").distinct().as("count"),
+        )
         .compile();
 
       const [programs, countResult] = await Promise.all([
@@ -87,8 +89,6 @@ export const trainingProgramsRouter = createTRPCRouter({
       ]);
 
       const total = Number(countResult[0]?.count ?? 0);
-
-      console.log({ countResult });
 
       return {
         data: programs ?? [],
