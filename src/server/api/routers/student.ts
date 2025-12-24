@@ -56,6 +56,7 @@ export const studentRouter = createTRPCRouter({
           "student_profiles.student_id",
         )
         .leftJoin("classes", "students.class_id", "classes.id")
+        .where("students.is_deleted", "=", false)
         .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
         .$if(!!search, (qb) =>
           qb.where((eb) =>
@@ -152,6 +153,7 @@ export const studentRouter = createTRPCRouter({
         .leftJoin("classes", "students.class_id", "classes.id")
         .leftJoin("exam_results", "students.id", "exam_results.student_id")
         .leftJoin("subjects", "exam_results.subject_id", "subjects.id")
+        .where("students.is_deleted", "=", false)
         .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
         .$if(!!search, (qb) =>
           qb.where((eb) =>
@@ -1253,5 +1255,36 @@ export const studentRouter = createTRPCRouter({
         created: newStudents.length,
         skipped: data.length - newStudents.length,
       };
+    }),
+
+  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+      const studentExists = await ctx.db.students.findUnique({
+        where: { id },
+      });
+
+      if (!studentExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Học viên không tồn tại",
+        });
+      }
+
+      await ctx.db.$transaction(async (tx) => {
+        await tx.students.update({
+          where: { id },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+          },
+        });
+      });
+      return { success: true };
     }),
 });
