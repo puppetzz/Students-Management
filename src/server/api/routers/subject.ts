@@ -1,4 +1,5 @@
 import { type Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { sql } from "node_modules/kysely/dist/esm/raw-builder/sql";
 import { z } from "zod";
@@ -23,6 +24,7 @@ export const subjectRouter = createTRPCRouter({
       const { page, pageSize, search, classId } = input;
 
       const where: Prisma.SubjectsWhereInput = {
+        isDeleted: false,
         ...(search
           ? {
               name: {
@@ -97,6 +99,7 @@ export const subjectRouter = createTRPCRouter({
 
       const subjectQuery = kyselyDB
         .selectFrom("subjects")
+        .where("is_deleted", "=", false)
         .$if(!!search, (qb) => qb.where("name", "ilike", `%${search}%`))
         .$if(!!classId, (qb) =>
           qb.where((sqb) =>
@@ -166,6 +169,7 @@ export const subjectRouter = createTRPCRouter({
       const subject = await ctx.db.subjects.findFirst({
         where: {
           id,
+          isDeleted: false,
         },
       });
 
@@ -234,5 +238,93 @@ export const subjectRouter = createTRPCRouter({
           updatedAt: new Date(),
         },
       });
+    }),
+
+  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const [existSubject, haveTrainingProgramContainSubject] =
+        await Promise.all([
+          ctx.db.subjects.findFirst({
+            where: {
+              id,
+              isDeleted: false,
+            },
+          }),
+          ctx.db.trainingProgramSubjects.findFirst({
+            where: {
+              subjectId: id,
+            },
+          }),
+        ]);
+
+      if (!existSubject) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Môn học không tồn tại",
+        });
+      }
+
+      if (haveTrainingProgramContainSubject) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Không thể xóa môn học vì đang tồn tại chương trình đào tạo có môn học này",
+        });
+      }
+
+      const deletedSubject = await ctx.db.subjects.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      });
+
+      return deletedSubject;
+    }),
+
+  restore: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const subjectExists = await ctx.db.subjects.findFirst({
+        where: {
+          id,
+          isDeleted: true,
+        },
+      });
+
+      if (!subjectExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Môn học đã bị xóa không tồn tại",
+        });
+      }
+
+      const restoredSubject = await ctx.db.subjects.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+
+      return restoredSubject;
     }),
 });

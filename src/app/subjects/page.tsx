@@ -45,6 +45,9 @@ const Subjects = () => {
     TSubjectMaterial[] | null
   >(null);
   const [selectedSubjectName, setSelectedSubjectName] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
+    null,
+  );
 
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
     useDisclosure(false);
@@ -55,6 +58,10 @@ const Subjects = () => {
   const [
     materialModalOpened,
     { open: openMaterialModal, close: closeMaterialModal },
+  ] = useDisclosure(false);
+  const [
+    confirmModalOpened,
+    { open: openConfirmModal, close: closeConfirmModal },
   ] = useDisclosure(false);
   const {
     register: registerEdit,
@@ -129,6 +136,7 @@ const Subjects = () => {
 
   const subjectUpdateMutation = api.subject.update.useMutation();
   const subjectCreateMutation = api.subject.create.useMutation();
+  const subjectDeleteMutation = api.subject.delete.useMutation();
 
   const handleOpenViewModal = (data: TUpdateSubject) => {
     const { id, name, description, code, scoreCoefficient, materials } = data;
@@ -142,6 +150,7 @@ const Subjects = () => {
       materials: materials ?? [],
     });
 
+    setSelectedSubjectId(id);
     setIsViewModal(true);
     openViewModal();
   };
@@ -149,6 +158,10 @@ const Subjects = () => {
   const handleOpenCreateModal = () => {
     resetCreate();
     openCreateModal();
+  };
+
+  const handleOpenConfirmModal = () => {
+    openConfirmModal();
   };
 
   const columns = useMemo<MRT_ColumnDef<TSubject>[]>(
@@ -291,6 +304,32 @@ const Subjects = () => {
     },
     [subjectCreateMutation, closeCreateModal, subjectsQuery],
   );
+
+  const handleDeleteSubject = useCallback(() => {
+    if (!selectedSubjectId) return;
+
+    subjectDeleteMutation.mutate(
+      { id: selectedSubjectId },
+      {
+        onSuccess: () => {
+          toast.success("Xóa Thành Công!");
+          void subjectsQuery.refetch();
+          closeConfirmModal();
+          closeViewModal();
+          setSelectedSubjectId(null);
+        },
+        onError: (error) => {
+          toast.error(error.message ?? "Xóa Thất Bại!");
+        },
+      },
+    );
+  }, [
+    selectedSubjectId,
+    subjectDeleteMutation,
+    subjectsQuery,
+    closeConfirmModal,
+    closeViewModal,
+  ]);
 
   return (
     <>
@@ -566,16 +605,21 @@ const Subjects = () => {
           <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
             <div className="mt-6 flex w-full gap-2 sm:w-auto">
               {isViewModal ? (
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsViewModal(false);
-                  }}
-                  className="flex-1 sm:flex-none"
-                >
-                  Chỉnh Sửa
-                </Button>
+                <>
+                  <Button color="red" onClick={handleOpenConfirmModal}>
+                    Xóa
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsViewModal(false);
+                    }}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Chỉnh Sửa
+                  </Button>
+                </>
               ) : (
                 <Button type="submit" className="flex-1 sm:flex-none">
                   Xác Nhận
@@ -818,6 +862,31 @@ const Subjects = () => {
         <Group justify="flex-end" mt="md">
           <Button onClick={closeMaterialModal}>Đóng</Button>
         </Group>
+      </Modal>
+
+      <Modal
+        opened={confirmModalOpened}
+        onClose={closeConfirmModal}
+        title="Xác Nhận Xóa"
+        styles={{
+          title: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        <p>Bạn có chắc chắn muốn xóa môn học này không?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            color="red"
+            onClick={handleDeleteSubject}
+            loading={subjectDeleteMutation.isPending}
+          >
+            Xóa
+          </Button>
+          <Button color="gray" onClick={closeConfirmModal}>
+            Hủy
+          </Button>
+        </div>
       </Modal>
     </>
   );

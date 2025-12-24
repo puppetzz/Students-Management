@@ -120,6 +120,27 @@ export const trainingProgramsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { name, description, subjectIds } = input;
 
+      if (!subjectIds?.length)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Chương trình đào tạo phải có ít nhất một môn học!",
+        });
+
+      const subjects = await ctx.db.subjects.findMany({
+        where: {
+          id: { in: subjectIds },
+          isDeleted: false,
+        },
+      });
+
+      if (subjects.length !== (subjectIds?.length ?? 0)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Danh sách môn học chứa môn học không tồn tại hoặc đã bị xóa!",
+        });
+      }
+
       const createdProgram = await ctx.db.$transaction(async (tx) => {
         const program = await tx.trainingProgram.create({
           data: {
@@ -148,9 +169,31 @@ export const trainingProgramsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, name, description, subjectIds } = input;
 
-      const programExists = await ctx.db.trainingProgram.findUnique({
-        where: { id },
-      });
+      const [programExists, subjects] = await Promise.all([
+        ctx.db.trainingProgram.findUnique({
+          where: { id },
+        }),
+        ctx.db.subjects.findMany({
+          where: {
+            id: { in: subjectIds ?? [] },
+            isDeleted: false,
+          },
+        }),
+      ]);
+
+      if (!subjectIds?.length)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Chương trình đào tạo phải có ít nhất một môn học!",
+        });
+
+      if (subjectIds && subjects.length !== subjectIds.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Danh sách môn học chứa môn học không tồn tại hoặc đã bị xóa!",
+        });
+      }
 
       if (!programExists) {
         throw new TRPCError({
