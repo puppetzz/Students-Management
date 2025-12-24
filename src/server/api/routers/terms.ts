@@ -21,6 +21,7 @@ export const termRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { search, page, pageSize } = input;
       const where: Prisma.TermsWhereInput = {
+        isDeleted: false,
         ...(search
           ? {
               name: {
@@ -66,6 +67,7 @@ export const termRouter = createTRPCRouter({
       const term = await ctx.db.terms.findFirst({
         where: {
           id,
+          isDeleted: false,
         },
       });
 
@@ -101,6 +103,68 @@ export const termRouter = createTRPCRouter({
           name: name ?? undefined,
           schoolYear: schoolYear ?? undefined,
           updatedAt: new Date(),
+        },
+      });
+    }),
+
+  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const termExists = await ctx.db.terms.findFirst({
+        where: {
+          id,
+          isDeleted: false,
+        },
+      });
+
+      if (!termExists) {
+        throw new Error("Khóa học không tồn tại");
+      }
+
+      return ctx.db.terms.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      });
+    }),
+
+  restore: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const termExists = await ctx.db.terms.findFirst({
+        where: {
+          id,
+          isDeleted: true,
+        },
+      });
+
+      if (!termExists) {
+        throw new Error("Khóa học đã bị xóa không tồn tại");
+      }
+
+      return ctx.db.terms.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: false,
+          deletedAt: null,
         },
       });
     }),
