@@ -320,6 +320,7 @@ export const studentRouter = createTRPCRouter({
       const classExists = await ctx.db.classes.findFirst({
         where: {
           id: input.classId,
+          isDeleted: false,
         },
       });
 
@@ -419,6 +420,17 @@ export const studentRouter = createTRPCRouter({
             // Continue with update even if deletion fails
           }
         }
+      }
+
+      const existClass = await ctx.db.classes.findUnique({
+        where: { id: input.classId ?? -1, isDeleted: false },
+      });
+
+      if (!existClass || existClass.isDeleted) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Lớp không tồn tại",
+        });
       }
 
       return ctx.db.students.update({
