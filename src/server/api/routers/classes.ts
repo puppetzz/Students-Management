@@ -175,7 +175,7 @@ export const classesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, name, trainingProgramId, termId, description } = input;
 
-      const existTerm = await Promise.all([
+      const [existTerm, existTrainingProgram] = await Promise.all([
         ctx.db.terms.findUnique({
           where: {
             id: termId,
@@ -195,6 +195,11 @@ export const classesRouter = createTRPCRouter({
           message: "Khóa học không tồn tại",
         });
       }
+      if (!existTrainingProgram)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chương trình đào tạo không tồn tại",
+        });
 
       const updatedClass = ctx.db.classes.update({
         where: {
