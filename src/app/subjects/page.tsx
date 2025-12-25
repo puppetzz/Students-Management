@@ -45,6 +45,9 @@ const Subjects = () => {
     TSubjectMaterial[] | null
   >(null);
   const [selectedSubjectName, setSelectedSubjectName] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
+    null,
+  );
 
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
     useDisclosure(false);
@@ -55,6 +58,10 @@ const Subjects = () => {
   const [
     materialModalOpened,
     { open: openMaterialModal, close: closeMaterialModal },
+  ] = useDisclosure(false);
+  const [
+    confirmModalOpened,
+    { open: openConfirmModal, close: closeConfirmModal },
   ] = useDisclosure(false);
   const {
     register: registerEdit,
@@ -129,6 +136,7 @@ const Subjects = () => {
 
   const subjectUpdateMutation = api.subject.update.useMutation();
   const subjectCreateMutation = api.subject.create.useMutation();
+  const subjectDeleteMutation = api.subject.delete.useMutation();
 
   const handleOpenViewModal = (data: TUpdateSubject) => {
     const { id, name, description, code, scoreCoefficient, materials } = data;
@@ -142,6 +150,7 @@ const Subjects = () => {
       materials: materials ?? [],
     });
 
+    setSelectedSubjectId(id);
     setIsViewModal(true);
     openViewModal();
   };
@@ -149,6 +158,10 @@ const Subjects = () => {
   const handleOpenCreateModal = () => {
     resetCreate();
     openCreateModal();
+  };
+
+  const handleOpenConfirmModal = () => {
+    openConfirmModal();
   };
 
   const columns = useMemo<MRT_ColumnDef<TSubject>[]>(
@@ -292,6 +305,29 @@ const Subjects = () => {
     [subjectCreateMutation, closeCreateModal, subjectsQuery],
   );
 
+  const handleDeleteSubject = useCallback(() => {
+    if (!selectedSubjectId) return;
+
+    subjectDeleteMutation.mutate(
+      { id: selectedSubjectId },
+      {
+        onSuccess: () => {
+          toast.success("Xóa Thành Công!");
+          void subjectsQuery.refetch();
+          closeConfirmModal();
+          closeViewModal();
+          setSelectedSubjectId(null);
+        },
+      },
+    );
+  }, [
+    selectedSubjectId,
+    subjectDeleteMutation,
+    subjectsQuery,
+    closeConfirmModal,
+    closeViewModal,
+  ]);
+
   return (
     <>
       <div className="relative min-h-screen p-4">
@@ -322,7 +358,9 @@ const Subjects = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Môn Học</Button>
+          <Button onClick={handleOpenCreateModal} color="green">
+            Thêm Môn Học
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2 overflow-x-auto">
@@ -561,8 +599,13 @@ const Subjects = () => {
             )}
           </div>
 
-          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
-            <div className="mt-6 flex w-full gap-2 sm:w-auto">
+          <div className="mt-2 flex items-center justify-between">
+            {isViewModal && (
+              <Button color="red" onClick={handleOpenConfirmModal}>
+                Xóa
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
               {isViewModal ? (
                 <Button
                   type="button"
@@ -570,20 +613,13 @@ const Subjects = () => {
                     e.preventDefault();
                     setIsViewModal(false);
                   }}
-                  className="flex-1 sm:flex-none"
                 >
                   Chỉnh Sửa
                 </Button>
               ) : (
-                <Button type="submit" className="flex-1 sm:flex-none">
-                  Xác Nhận
-                </Button>
+                <Button type="submit">Xác Nhận</Button>
               )}
-              <Button
-                color="red"
-                onClick={closeViewModal}
-                className="flex-1 sm:flex-none"
-              >
+              <Button color="gray" onClick={closeViewModal}>
                 Hủy
               </Button>
             </div>
@@ -816,6 +852,31 @@ const Subjects = () => {
         <Group justify="flex-end" mt="md">
           <Button onClick={closeMaterialModal}>Đóng</Button>
         </Group>
+      </Modal>
+
+      <Modal
+        opened={confirmModalOpened}
+        onClose={closeConfirmModal}
+        title="Xác Nhận Xóa"
+        styles={{
+          title: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        <p>Bạn có chắc chắn muốn xóa môn học này không?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            color="red"
+            onClick={handleDeleteSubject}
+            loading={subjectDeleteMutation.isPending}
+          >
+            Xóa
+          </Button>
+          <Button color="gray" onClick={closeConfirmModal}>
+            Hủy
+          </Button>
+        </div>
       </Modal>
     </>
   );

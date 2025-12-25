@@ -9,6 +9,7 @@ import {
   Box,
   Loader,
   Alert,
+  Select,
 } from "@mantine/core";
 import { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
@@ -23,6 +24,8 @@ import type {
   TStudentGradesResponse,
 } from "~/types/students";
 import { batchUpdateGradesSchema } from "common/schema/student";
+import { EConduct } from "@prisma/client";
+import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
 
 type Props = {
   opened: boolean;
@@ -58,6 +61,7 @@ export const BatchUpdateGradesModal = ({
       resolver: zodResolver(batchUpdateGradesSchema),
       defaultValues: {
         grades: {},
+        conducts: {},
       },
     });
 
@@ -86,9 +90,11 @@ export const BatchUpdateGradesModal = ({
   useEffect(() => {
     if (classData.students && classData.id) {
       const initialGrades: Record<string, Record<string, number | null>> = {};
+      const initialConducts: Record<string, EConduct | null> = {};
 
       classData.students.forEach((student) => {
         initialGrades[student.id.toString()] = {};
+        initialConducts[student.id.toString()] = student.conduct ?? null;
 
         // Initialize all subjects with null (empty)
         subjects.forEach((subject) => {
@@ -110,6 +116,7 @@ export const BatchUpdateGradesModal = ({
       });
 
       setValue("grades", initialGrades);
+      setValue("conducts", initialConducts);
     }
   }, [classData.students, classData.id, setValue, subjects]);
 
@@ -122,12 +129,17 @@ export const BatchUpdateGradesModal = ({
     setValue(`grades.${studentId}.${subjectId}`, numValue);
   };
 
+  const handleConductChange = (studentId: string, value: string | null) => {
+    setValue(`conducts.${studentId}`, value as EConduct | null);
+  };
+
   const onSubmit = async (data: TBatchUpdateGrades) => {
     const updates: {
       classId: number;
       data: Array<{
         studentId: number;
         grades: Array<{ subjectId: number; scored: number }>;
+        conduct?: EConduct;
       }>;
     } = {
       classId: classData.id,
@@ -148,16 +160,20 @@ export const BatchUpdateGradesModal = ({
         }
       });
 
-      if (gradeUpdates.length > 0) {
+      // Get conduct value for this student
+      const conductValue = data.conducts?.[studentIdStr];
+
+      if (gradeUpdates.length > 0 || conductValue) {
         updates.data.push({
           studentId,
           grades: gradeUpdates,
+          ...(conductValue && { conduct: conductValue }),
         });
       }
     });
 
     if (updates.data.length === 0) {
-      toast.warning("Không có điểm nào được cập nhật");
+      toast.warning("Không có điểm hoặc hạnh kiểm nào được cập nhật");
       return;
     }
 
@@ -254,6 +270,9 @@ export const BatchUpdateGradesModal = ({
                             {subject.name}
                           </Table.Th>
                         ))}
+                        <Table.Th className="min-w-32 text-center whitespace-nowrap">
+                          Rèn luyện
+                        </Table.Th>
                         <Table.Th className="min-w-24 text-center whitespace-nowrap">
                           Điểm TB
                         </Table.Th>
@@ -307,6 +326,56 @@ export const BatchUpdateGradesModal = ({
                               </Table.Td>
                             );
                           })}
+
+                          {/* Conduct Select */}
+                          <Table.Td className="text-center">
+                            <Controller
+                              name={`conducts.${student.id}`}
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  {...field}
+                                  value={field.value ?? null}
+                                  onChange={(value) =>
+                                    handleConductChange(
+                                      student.id.toString(),
+                                      value,
+                                    )
+                                  }
+                                  data={[
+                                    {
+                                      value: EConduct.EXCELLENT,
+                                      label:
+                                        CONDUCT_LANGUAGE_MAPPING[
+                                          EConduct.EXCELLENT
+                                        ],
+                                    },
+                                    {
+                                      value: EConduct.GOOD,
+                                      label:
+                                        CONDUCT_LANGUAGE_MAPPING[EConduct.GOOD],
+                                    },
+                                    {
+                                      value: EConduct.AVERAGE,
+                                      label:
+                                        CONDUCT_LANGUAGE_MAPPING[
+                                          EConduct.AVERAGE
+                                        ],
+                                    },
+                                    {
+                                      value: EConduct.POOR,
+                                      label:
+                                        CONDUCT_LANGUAGE_MAPPING[EConduct.POOR],
+                                    },
+                                  ]}
+                                  placeholder="Chọn"
+                                  size="sm"
+                                  className="w-32"
+                                  clearable
+                                />
+                              )}
+                            />
+                          </Table.Td>
 
                           <Controller
                             name={`grades.${student.id}`}

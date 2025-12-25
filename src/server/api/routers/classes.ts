@@ -60,6 +60,8 @@ export const classesRouter = createTRPCRouter({
           "subjects.id",
         )
         .innerJoin("terms", "classes.term_id", "terms.id")
+        .where("classes.is_deleted", "=", false)
+        .where("terms.is_deleted", "=", false)
         .$if(!!search, (qb) =>
           qb.where("classes.name", "ilike", `%${search!}%`),
         )
@@ -122,6 +124,7 @@ export const classesRouter = createTRPCRouter({
       const classes = await ctx.db.classes.findFirst({
         where: {
           id,
+          isDeleted: false,
         },
       });
 
@@ -172,6 +175,33 @@ export const classesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, name, trainingProgramId, termId, description } = input;
+
+      const [existTerm, existTrainingProgram] = await Promise.all([
+        ctx.db.terms.findUnique({
+          where: {
+            id: termId,
+            isDeleted: false,
+          },
+        }),
+        ctx.db.trainingProgram.findUnique({
+          where: {
+            id: trainingProgramId,
+          },
+        }),
+      ]);
+
+      if (!existTerm) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Khóa học không tồn tại",
+        });
+      }
+      if (!existTrainingProgram)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chương trình đào tạo không tồn tại",
+        });
+
       const updatedClass = ctx.db.classes.update({
         where: {
           id,
@@ -288,5 +318,77 @@ export const classesRouter = createTRPCRouter({
         currentClassificationStats,
         finalClassificationStats,
       };
+    }),
+
+  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const classExists = await ctx.db.classes.findFirst({
+        where: {
+          id,
+          isDeleted: false,
+        },
+      });
+
+      if (!classExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lớp học không tồn tại",
+        });
+      }
+
+      const deletedClass = await ctx.db.classes.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      });
+
+      return deletedClass;
+    }),
+
+  restore: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+    .input(
+      z.object({
+        id: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      const classExists = await ctx.db.classes.findFirst({
+        where: {
+          id,
+          isDeleted: true,
+        },
+      });
+
+      if (!classExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Lớp học đã bị xóa không tồn tại",
+        });
+      }
+
+      const restoredClass = await ctx.db.classes.update({
+        where: {
+          id,
+        },
+        data: {
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+
+      return restoredClass;
     }),
 });

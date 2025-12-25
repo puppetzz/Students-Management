@@ -46,6 +46,8 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [deleteConfirmOpened, setDeleteConfirmOpened] =
+    useState<boolean>(false);
 
   const {
     register,
@@ -155,6 +157,7 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
 
   const updateStudentMutation = api.student.updateInfo.useMutation();
   const uploadImageMutation = useUploadImageMutation();
+  const deleteStudentMutation = api.student.delete.useMutation();
 
   const handleImageDrop = async (files: FileWithPath[]) => {
     if (files.length === 0) return;
@@ -227,6 +230,31 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
     // Reset image preview to original data
     setImagePreview(data?.imageUrl ? String(data.imageUrl) : null);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (!data) return;
+
+    deleteStudentMutation.mutate(
+      { id: data.id },
+      {
+        onSuccess: () => {
+          const getStudentsQueryKey = getQueryKey(
+            api.student.getAll,
+            undefined,
+            "query",
+          );
+          void queryClient.invalidateQueries({ queryKey: getStudentsQueryKey });
+          toast.success("Xóa học viên thành công");
+          setDeleteConfirmOpened(false);
+          handleClose();
+        },
+        onError: (error) => {
+          console.error("Lỗi xóa học viên:", error.shape?.message);
+          toast.error("Lỗi xóa học viên: " + error.shape?.message);
+        },
+      },
+    );
   };
 
   return (
@@ -777,44 +805,102 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                 withBorder
                 style={{ borderTop: "2px solid #dee2e6" }}
               >
-                <Group justify="flex-end" gap="sm">
+                <Group justify="space-between" gap="sm">
                   <Button
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleClose}
+                    variant="light"
+                    color="red"
+                    onClick={() => setDeleteConfirmOpened(true)}
                     disabled={
                       uploadImageMutation.isPending ||
-                      updateStudentMutation.isPending
+                      updateStudentMutation.isPending ||
+                      deleteStudentMutation.isPending ||
+                      isEditMode
                     }
                   >
-                    Đóng
+                    Xóa
                   </Button>
-                  {!isEditMode ? (
-                    <Button type="button" onClick={handleClickEdit}>
-                      Chỉnh sửa
-                    </Button>
-                  ) : (
+                  <Group gap="sm">
                     <Button
-                      type="submit"
-                      color="teal"
+                      variant="subtle"
+                      color="gray"
+                      onClick={handleClose}
                       disabled={
                         uploadImageMutation.isPending ||
-                        updateStudentMutation.isPending
-                      }
-                      loading={
-                        uploadImageMutation.isPending ||
-                        updateStudentMutation.isPending
+                        updateStudentMutation.isPending ||
+                        deleteStudentMutation.isPending
                       }
                     >
-                      Lưu thay đổi
+                      Đóng
                     </Button>
-                  )}
+                    {!isEditMode ? (
+                      <Button type="button" onClick={handleClickEdit}>
+                        Chỉnh sửa
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        color="teal"
+                        disabled={
+                          uploadImageMutation.isPending ||
+                          updateStudentMutation.isPending
+                        }
+                        loading={
+                          uploadImageMutation.isPending ||
+                          updateStudentMutation.isPending
+                        }
+                      >
+                        Lưu thay đổi
+                      </Button>
+                    )}
+                  </Group>
                 </Group>
               </Paper>
             </form>
           </Box>
         </Modal>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteConfirmOpened}
+        onClose={() => setDeleteConfirmOpened(false)}
+        title={
+          <Text size="lg" fw={600}>
+            Xác nhận xóa học viên
+          </Text>
+        }
+        centered
+        size="md"
+        zIndex={1000}
+      >
+        <Stack gap="lg">
+          <Text>
+            Bạn có chắc chắn muốn xóa học viên{" "}
+            <Text span fw={600}>
+              {data?.lastName} {data?.firstName}
+            </Text>
+            ? Hành động này không thể hoàn tác.
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="subtle"
+              color="gray"
+              onClick={() => setDeleteConfirmOpened(false)}
+              disabled={deleteStudentMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              color="red"
+              onClick={handleDelete}
+              loading={deleteStudentMutation.isPending}
+              disabled={deleteStudentMutation.isPending}
+            >
+              Xóa
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   );
 };

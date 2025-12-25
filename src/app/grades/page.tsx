@@ -6,14 +6,27 @@ import {
   useMantineReactTable,
   type MRT_ColumnDef,
 } from "mantine-react-table";
-import { Button, Select, TextInput } from "@mantine/core";
+import {
+  Button,
+  Checkbox,
+  Collapse,
+  Menu,
+  Select,
+  TextInput,
+} from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
+import {
+  IconDotsVertical,
+  IconFilter,
+  IconFilterFilled,
+} from "@tabler/icons-react";
 import type { TStudentGradesResponse } from "~/types/students";
 import { api } from "~/trpc/react";
 import {
   CONDUCT_LANGUAGE_MAPPING,
   GRADE_CLASSIFICATIONS,
 } from "common/constants/students";
+import { EGradesOrderBy, EOrderDirection } from "common/enums/grades.enum";
 import useSearchParams from "~/hooks/useSearchParams";
 import { ViewAndEditGrades } from "../_components/grades/ViewAndEditGrades";
 import { BatchUpdateGradesModal } from "../_components/grades/BatchUpdateGradesModal";
@@ -28,9 +41,17 @@ const Grades = () => {
   const search = searchParams.getParam("search");
   const termId = searchParams.getParam("termId");
   const classId = searchParams.getParam("classId");
+  const orderBy = searchParams.getParam("orderBy") ?? EGradesOrderBy.NAME;
+  const orderDirection =
+    searchParams.getParam("orderDirection") ?? EOrderDirection.ASC;
 
   const [selectedStudent, setSelectedStudent] =
     useState<TStudentGradesResponse | null>(null);
+
+  const [visibleFilters, setVisibleFilters] = useState({
+    sort: false,
+    search: true,
+  });
 
   const [
     openedViewAndEditModal,
@@ -57,6 +78,8 @@ const Grades = () => {
     {
       classId: classId ? Number(classId) : undefined,
       search: (search as string) ?? undefined,
+      orderBy: orderBy as EGradesOrderBy,
+      orderDirection: orderDirection as EOrderDirection,
     },
     {
       enabled: !!classId,
@@ -290,14 +313,14 @@ const Grades = () => {
 
   return (
     <>
-      <div className="relative max-h-screen min-h-screen overflow-auto p-4">
+      <div className="relative min-h-screen overflow-auto p-4">
         <div
-          className="absolute inset-0 z-[-1]"
+          className="absolute inset-0 z-[-1] min-h-full"
           style={{
             backgroundImage: "url(/bg_2.jpg)",
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
+            backgroundRepeat: "repeat",
             opacity: 0.5,
           }}
         />
@@ -354,32 +377,118 @@ const Grades = () => {
               />
               <Select
                 label="Lớp"
-                className="w-30"
+                className="w-50"
                 data={classesSelectData}
                 value={classId ? classId.toString() : null}
                 onChange={(value) => {
                   searchParams.setParam("classId", value);
                 }}
               />
-              <TextInput
-                label="Tìm Kiếm"
-                className="w-50"
-                onChange={(e) => {
-                  debouncedSearch(e.target.value);
+              <Collapse in={visibleFilters.search} transitionDuration={300}>
+                <TextInput
+                  label="Tìm Kiếm"
+                  className="w-80"
+                  onChange={(e) => {
+                    debouncedSearch(e.target.value);
+                  }}
+                />
+              </Collapse>
+            </div>
+            <div className="flex flex-col justify-end gap-2">
+              <div className="flex gap-2">
+                <Button
+                  color="violet"
+                  variant="outline"
+                  onClick={openStatisticsModal}
+                  disabled={!classId}
+                >
+                  Thống Kê
+                </Button>
+                <div className="flex flex-col justify-center">
+                  <Menu shadow="md" width={200}>
+                    <Menu.Target>
+                      <Button variant="outline" color="gray">
+                        <IconFilterFilled size={18} />
+                      </Button>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Label>Hiển thị bộ lọc</Menu.Label>
+                      <Menu.Item
+                        closeMenuOnClick={false}
+                        onClick={() =>
+                          setVisibleFilters((prev) => ({
+                            ...prev,
+                            search: !prev.search,
+                          }))
+                        }
+                      >
+                        <Checkbox
+                          label="Tìm kiếm"
+                          checked={visibleFilters.search}
+                        />
+                      </Menu.Item>
+                      <Menu.Item
+                        closeMenuOnClick={false}
+                        onClick={() =>
+                          setVisibleFilters((prev) => ({
+                            ...prev,
+                            sort: !prev.sort,
+                          }))
+                        }
+                      >
+                        <Checkbox
+                          label="Sắp xếp"
+                          checked={visibleFilters.sort}
+                        />
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Collapse in={visibleFilters.sort} transitionDuration={300}>
+            <div className="border-t border-[#dee2e6]"></div>
+            <div className="flex gap-2 py-1">
+              <Select
+                label="Sắp Xếp Theo"
+                className="w-60"
+                data={[
+                  { value: EGradesOrderBy.NAME, label: "Tên" },
+                  {
+                    value: EGradesOrderBy.AVG_SCORED_SUBJECTS,
+                    label: "ĐTB Hiện Tại",
+                  },
+                  { value: EGradesOrderBy.AVG_OVERALL, label: "ĐTB Toàn Khóa" },
+                  {
+                    value: EGradesOrderBy.CURRENT_CLASSIFICATION,
+                    label: "Xếp Loại Hiện Tại",
+                  },
+                  {
+                    value: EGradesOrderBy.FINAL_CLASSIFICATION,
+                    label: "Xếp Loại Cuối Khóa",
+                  },
+                ]}
+                value={orderBy as string}
+                onChange={(value) => {
+                  searchParams.setParam("orderBy", value);
+                }}
+              />
+              <Select
+                label="Thứ Tự"
+                className="w-40"
+                data={[
+                  { value: EOrderDirection.ASC, label: "Tăng dần" },
+                  { value: EOrderDirection.DESC, label: "Giảm dần" },
+                ]}
+                value={orderDirection as string}
+                onChange={(value) => {
+                  searchParams.setParam("orderDirection", value);
                 }}
               />
             </div>
-            <div className="flex flex-col justify-end">
-              <Button
-                color="violet"
-                variant="outline"
-                onClick={openStatisticsModal}
-                disabled={!classId}
-              >
-                Thống Kê
-              </Button>
-            </div>
-          </div>
+          </Collapse>
         </div>
         <MantineReactTable table={table} />
       </div>

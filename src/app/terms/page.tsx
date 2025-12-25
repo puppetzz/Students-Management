@@ -21,6 +21,7 @@ import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
 
 const Terms = () => {
   const [isViewModal, setIsViewModal] = useState(true);
+  const [selectedTermId, setSelectedTermId] = useState<number | null>(null);
 
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
     useDisclosure(false);
@@ -28,10 +29,15 @@ const Terms = () => {
     createModalOpened,
     { open: openCreateModal, close: closeCreateModal },
   ] = useDisclosure(false);
+  const [
+    confirmModalOpened,
+    { open: openConfirmModal, close: closeConfirmModal },
+  ] = useDisclosure(false);
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
+    watch: watchEdit,
   } = useForm({
     resolver: zodResolver(updateTermSchema),
   });
@@ -57,6 +63,8 @@ const Terms = () => {
     });
   }, []);
 
+  const utils = api.useUtils();
+
   const termsQuery = api.term.getAll.useQuery(
     {
       page,
@@ -72,6 +80,7 @@ const Terms = () => {
 
   const termUpdateMutation = api.term.update.useMutation();
   const termCreateMutation = api.term.create.useMutation();
+  const termDeleteMutation = api.term.delete.useMutation();
 
   const handleOpenViewModal = (data: TUpdateTerm) => {
     const { id, name, schoolYear } = data;
@@ -151,13 +160,13 @@ const Terms = () => {
         {
           onSuccess: () => {
             toast.success("Chỉnh sửa thành công!");
-            void termsQuery.refetch();
+            void utils.term.getAll.invalidate();
             closeViewModal();
           },
         },
       );
     },
-    [termUpdateMutation, closeViewModal, termsQuery],
+    [termUpdateMutation, closeViewModal, utils],
   );
 
   const onSubmitCreateForm = useCallback(
@@ -170,14 +179,48 @@ const Terms = () => {
         {
           onSuccess: () => {
             toast.success("Tạo thành công!");
-            void termsQuery.refetch();
+            void utils.term.getAll.invalidate();
             closeCreateModal();
           },
         },
       );
     },
-    [termCreateMutation, closeCreateModal, termsQuery],
+    [termCreateMutation, closeCreateModal, utils],
   );
+
+  const handleDeleteTerm = useCallback(() => {
+    if (!selectedTermId) return;
+
+    termDeleteMutation.mutate(
+      { id: selectedTermId },
+      {
+        onSuccess: () => {
+          toast.success("Xóa thành công!");
+          void utils.term.getAll.invalidate();
+          closeConfirmModal();
+          closeViewModal();
+          setSelectedTermId(null);
+        },
+        onError: (error) => {
+          toast.error(error.message ?? "Xóa thất bại!");
+        },
+      },
+    );
+  }, [
+    selectedTermId,
+    termDeleteMutation,
+    utils,
+    closeConfirmModal,
+    closeViewModal,
+  ]);
+
+  const handleOpenConfirmModal = useCallback(() => {
+    const termId = watchEdit("id");
+    if (termId) {
+      setSelectedTermId(termId);
+      openConfirmModal();
+    }
+  }, [watchEdit, openConfirmModal]);
 
   return (
     <>
@@ -203,7 +246,9 @@ const Terms = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Khóa Học</Button>
+          <Button onClick={handleOpenCreateModal} color="green">
+            Thêm Khóa Học
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -249,8 +294,13 @@ const Terms = () => {
             readOnly={isViewModal}
             styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
-          <div className="flex justify-end">
-            <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex items-center justify-between">
+            {isViewModal && (
+              <Button color="red" onClick={handleOpenConfirmModal}>
+                Xóa
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
               {isViewModal ? (
                 <Button
                   type="button"
@@ -264,7 +314,7 @@ const Terms = () => {
               ) : (
                 <Button type="submit">Xác Nhận</Button>
               )}
-              <Button color="red" onClick={closeViewModal}>
+              <Button color="gray" onClick={closeViewModal}>
                 Hủy
               </Button>
             </div>
@@ -302,6 +352,31 @@ const Terms = () => {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        opened={confirmModalOpened}
+        onClose={closeConfirmModal}
+        title="Xác Nhận Xóa"
+        styles={{
+          title: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        <p>Bạn có chắc chắn muốn xóa khóa học này không?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            color="red"
+            onClick={handleDeleteTerm}
+            loading={termDeleteMutation.isPending}
+          >
+            Xóa
+          </Button>
+          <Button color="gray" onClick={closeConfirmModal}>
+            Hủy
+          </Button>
+        </div>
       </Modal>
     </>
   );

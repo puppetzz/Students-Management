@@ -89,6 +89,7 @@ export const updateGradesSchema = z.object({
       name: z.string().optional(),
     }),
   ),
+  conduct: z.nativeEnum(EConduct).optional(),
 });
 
 export const batchUpdateGradesSchema = z.object({
@@ -99,6 +100,12 @@ export const batchUpdateGradesSchema = z.object({
       z.number().min(0).max(10).nullable(),
     ),
   ),
+  conducts: z
+    .record(
+      z.string(), // studentId
+      z.nativeEnum(EConduct).nullable(),
+    )
+    .optional(),
 });
 
 export const importStudentsFromExcelSchema = z.object({

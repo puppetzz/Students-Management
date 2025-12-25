@@ -38,8 +38,10 @@ model Students {
     avgScoredSubjects Float     @default(0) @map("avg_scored_subjects")
     avgOverall        Float?    @map("avg_overall")
     conduct           EConduct?
+    isDeleted         Boolean   @default(false) @map("is_deleted")
     createdAt         DateTime  @default(now()) @map("created_at")
     updatedAt         DateTime  @default(now()) @map("updated_at")
+    deletedAt         DateTime? @map("deleted_at")
     classId           Int       @map("class_id")
     imageKey          String?   @map("image_key")
 
@@ -88,13 +90,15 @@ model StudentProfiles {
 }
 
 model Classes {
-    id                Int      @id @default(autoincrement())
+    id                Int       @id @default(autoincrement())
     name              String
     description       String?
-    termId            Int      @map("term_id")
-    trainingProgramId Int      @map("training_program_id")
-    createdAt         DateTime @default(now()) @map("created_at")
-    updatedAt         DateTime @default(now()) @map("updated_at")
+    termId            Int       @map("term_id")
+    trainingProgramId Int       @map("training_program_id")
+    isDeleted         Boolean   @default(false) @map("is_deleted")
+    createdAt         DateTime  @default(now()) @map("created_at")
+    updatedAt         DateTime  @default(now()) @map("updated_at")
+    deletedAt         DateTime? @map("deleted_at")
 
     term            Terms           @relation(fields: [termId], references: [id])
     trainingProgram TrainingProgram @relation(fields: [trainingProgramId], references: [id])
@@ -106,34 +110,40 @@ model Classes {
 }
 
 model Terms {
-    id         Int      @id @default(autoincrement())
+    id         Int       @id @default(autoincrement())
     name       String
     schoolYear String
-    createdAt  DateTime @default(now()) @map("created_at")
-    updatedAt  DateTime @default(now()) @map("updated_at")
+    createdAt  DateTime  @default(now()) @map("created_at")
+    updatedAt  DateTime  @default(now()) @map("updated_at")
+    isDeleted  Boolean   @default(false) @map("is_deleted")
+    deletedAt  DateTime? @map("deleted_at")
 
     classes Classes[]
 
     @@index([schoolYear])
     @@index([name])
+    @@index([isDeleted])
     @@map("terms")
 }
 
 model Subjects {
-    id               Int      @id @default(autoincrement())
-    code             String   @unique
+    id               Int       @id @default(autoincrement())
+    code             String    @unique
     name             String
-    scoreCoefficient Int      @default(1) @map("score_coefficient")
+    scoreCoefficient Int       @default(1) @map("score_coefficient")
     description      String?
     material         Json?
-    createdAt        DateTime @default(now()) @map("created_at")
-    updatedAt        DateTime @default(now()) @map("updated_at")
+    isDeleted        Boolean   @default(false) @map("is_deleted")
+    createdAt        DateTime  @default(now()) @map("created_at")
+    updatedAt        DateTime  @default(now()) @map("updated_at")
+    deletedAt        DateTime? @map("deleted_at")
 
     examResults             ExamResults[]
     trainingProgramSubjects TrainingProgramSubjects[]
 
     @@index([name])
     @@index([code])
+    @@index([isDeleted])
     @@map("subjects")
 }
 
@@ -168,16 +178,19 @@ model TrainingProgramSubjects {
 }
 
 model TrainingProgram {
-    id          Int      @id @default(autoincrement())
+    id          Int       @id @default(autoincrement())
     name        String
     description String?
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @default(now()) @map("updated_at")
+    isDeleted   Boolean   @default(false) @map("is_deleted")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @default(now()) @map("updated_at")
+    deletedAt   DateTime? @map("deleted_at")
 
     trainingProgramSubjects TrainingProgramSubjects[]
     classes                 Classes[]
 
     @@index([name])
+    @@index([isDeleted])
     @@map("training_programs")
 }
 

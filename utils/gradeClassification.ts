@@ -29,6 +29,11 @@ export const getGradeClassification = (score: number): GradeClassification => {
       label: "TB",
       colorClass: "bg-yellow-100 text-yellow-800",
     };
+  } else if (score === 0) {
+    return {
+      label: "Chưa xếp loại",
+      colorClass: "bg-gray-100 text-gray-600",
+    };
   } else {
     return {
       label: "Không đạt",

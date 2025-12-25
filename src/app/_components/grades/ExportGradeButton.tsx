@@ -63,7 +63,7 @@ export const ExportGradeButton = ({
         "CCCD",
         "FN",
         "LN",
-        ...subjects.map((subject) => `subject_${subject.id}`),
+        ...subjects.map((subject) => subject.code),
       ];
 
       const exportData = {

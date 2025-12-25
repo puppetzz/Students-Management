@@ -35,7 +35,7 @@ export const createQueryClient = () =>
               return;
             }
           }
-          toast.error("Có lỗi xảy ra. Vui lòng thử lại");
+          toast.error(error.message);
         },
       },
       dehydrate: {

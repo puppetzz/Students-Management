@@ -31,11 +31,16 @@ import type { TClasses, TCreateClasses, TUpdateClasses } from "~/types/classes";
 
 const Classes = () => {
   const [isViewModal, setIsViewModal] = useState(true);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
     useDisclosure(false);
   const [
     createModalOpened,
     { open: openCreateModal, close: closeCreateModal },
+  ] = useDisclosure(false);
+  const [
+    confirmModalOpened,
+    { open: openConfirmModal, close: closeConfirmModal },
   ] = useDisclosure(false);
   const {
     register: registerEdit,
@@ -95,6 +100,7 @@ const Classes = () => {
 
   const classUpdateMutation = api.classes.update.useMutation();
   const classCreateMutation = api.classes.create.useMutation();
+  const classDeleteMutation = api.classes.delete.useMutation();
 
   const handleOpenViewModal = (data: TUpdateClasses) => {
     const { id, name, description, trainingProgramId, termName, termId } = data;
@@ -220,6 +226,40 @@ const Classes = () => {
     [classCreateMutation, closeCreateModal, classesQuery],
   );
 
+  const handleDeleteClass = useCallback(() => {
+    if (!selectedClassId) return;
+
+    classDeleteMutation.mutate(
+      { id: selectedClassId },
+      {
+        onSuccess: () => {
+          toast.success("Xóa Thành Công!");
+          void classesQuery.refetch();
+          closeConfirmModal();
+          closeViewModal();
+          setSelectedClassId(null);
+        },
+        onError: (error) => {
+          toast.error(error.message ?? "Xóa Thất Bại!");
+        },
+      },
+    );
+  }, [
+    selectedClassId,
+    classDeleteMutation,
+    classesQuery,
+    closeConfirmModal,
+    closeViewModal,
+  ]);
+
+  const handleOpenConfirmModal = useCallback(() => {
+    const classId = watchEdit("id");
+    if (classId) {
+      setSelectedClassId(classId);
+      openConfirmModal();
+    }
+  }, [watchEdit, openConfirmModal]);
+
   const termsSelectData = useMemo(() => {
     return (
       termQuery.data?.data.map((term) => ({
@@ -253,7 +293,9 @@ const Classes = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>Thêm Lớp</Button>
+          <Button onClick={handleOpenCreateModal} color="green">
+            Thêm Lớp
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -330,8 +372,13 @@ const Classes = () => {
             readOnly={isViewModal}
             styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
-          <div className="flex justify-end">
-            <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex items-center justify-between">
+            {isViewModal && (
+              <Button color="red" onClick={handleOpenConfirmModal}>
+                Xóa
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
               {isViewModal ? (
                 <Button
                   type="button"
@@ -345,7 +392,7 @@ const Classes = () => {
               ) : (
                 <Button type="submit">Xác Nhận</Button>
               )}
-              <Button color="red" onClick={closeViewModal}>
+              <Button color="gray" onClick={closeViewModal}>
                 Hủy
               </Button>
             </div>
@@ -408,6 +455,31 @@ const Classes = () => {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        opened={confirmModalOpened}
+        onClose={closeConfirmModal}
+        title="Xác Nhận Xóa"
+        styles={{
+          title: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        <p>Bạn có chắc chắn muốn xóa lớp này không?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            color="red"
+            onClick={handleDeleteClass}
+            loading={classDeleteMutation.isPending}
+          >
+            Xóa
+          </Button>
+          <Button color="gray" onClick={closeConfirmModal}>
+            Hủy
+          </Button>
+        </div>
       </Modal>
     </>
   );

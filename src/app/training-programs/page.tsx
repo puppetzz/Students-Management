@@ -44,6 +44,10 @@ const TrainingPrograms = () => {
     createModalOpened,
     { open: openCreateModal, close: closeCreateModal },
   ] = useDisclosure(false);
+  const [
+    confirmModalOpened,
+    { open: openConfirmModal, close: closeConfirmModal },
+  ] = useDisclosure(false);
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
@@ -95,6 +99,8 @@ const TrainingPrograms = () => {
   useTRPCErrorHandler(programsQuery.error);
   useTRPCErrorHandler(subjectsQuery.error);
 
+  const utils = api.useUtils();
+
   const programUpdateMutation = api.trainingPrograms.update.useMutation();
   const programCreateMutation = api.trainingPrograms.create.useMutation();
   const programDeleteMutation = api.trainingPrograms.delete.useMutation();
@@ -116,6 +122,10 @@ const TrainingPrograms = () => {
   const handleOpenCreateModal = () => {
     resetCreate();
     openCreateModal();
+  };
+
+  const handleOpenConfirmModal = () => {
+    openConfirmModal();
   };
 
   const selectedEditSubjectIds = watchEdit("subjectIds") ?? [];
@@ -251,12 +261,14 @@ const TrainingPrograms = () => {
           onSuccess: () => {
             toast.success("Chỉnh sửa thành công!");
             void programsQuery.refetch();
+            void utils.student.getWithGrades.invalidate();
+
             closeViewModal();
           },
         },
       );
     },
-    [programUpdateMutation, closeViewModal, programsQuery],
+    [programUpdateMutation, closeViewModal, programsQuery, utils],
   );
 
   const onSubmitCreateForm = useCallback(
@@ -289,11 +301,21 @@ const TrainingPrograms = () => {
         onSuccess: () => {
           toast.success("Xóa thành công!");
           void programsQuery.refetch();
+          closeConfirmModal();
           closeViewModal();
+        },
+        onError: (error) => {
+          toast.error(error.message ?? "Xóa thất bại!");
         },
       },
     );
-  }, [programDeleteMutation, watchEdit, closeViewModal, programsQuery]);
+  }, [
+    programDeleteMutation,
+    watchEdit,
+    closeConfirmModal,
+    closeViewModal,
+    programsQuery,
+  ]);
 
   return (
     <>
@@ -319,7 +341,7 @@ const TrainingPrograms = () => {
         </div>
 
         <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal}>
+          <Button onClick={handleOpenCreateModal} color="green">
             Thêm Chương Trình Đào Tạo
           </Button>
         </div>
@@ -469,38 +491,27 @@ const TrainingPrograms = () => {
               </div>
             </div>
           </div>
-          <div className="flex justify-end">
-            <div className="mt-4 flex gap-2">
+          <div className="mt-2 flex items-center justify-between">
+            {isViewModal && (
+              <Button color="red" onClick={handleOpenConfirmModal}>
+                Xóa
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
               {isViewModal ? (
-                <>
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsViewModal(false);
-                    }}
-                  >
-                    Chỉnh Sửa
-                  </Button>
-                  <Button
-                    type="button"
-                    color="red"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (
-                        confirm("Bạn có chắc muốn xóa chương trình này không?")
-                      ) {
-                        handleDeleteProgram();
-                      }
-                    }}
-                  >
-                    Xóa
-                  </Button>
-                </>
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsViewModal(false);
+                  }}
+                >
+                  Chỉnh Sửa
+                </Button>
               ) : (
                 <Button type="submit">Xác Nhận</Button>
               )}
-              <Button color="red" onClick={closeViewModal}>
+              <Button color="gray" onClick={closeViewModal}>
                 Hủy
               </Button>
             </div>
@@ -629,6 +640,31 @@ const TrainingPrograms = () => {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        opened={confirmModalOpened}
+        onClose={closeConfirmModal}
+        title="Xác Nhận Xóa"
+        styles={{
+          title: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        <p>Bạn có chắc chắn muốn xóa chương trình đào tạo này không?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            color="red"
+            onClick={handleDeleteProgram}
+            loading={programDeleteMutation.isPending}
+          >
+            Xóa
+          </Button>
+          <Button color="gray" onClick={closeConfirmModal}>
+            Hủy
+          </Button>
+        </div>
       </Modal>
     </>
   );

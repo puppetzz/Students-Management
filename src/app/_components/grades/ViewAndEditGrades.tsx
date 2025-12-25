@@ -5,7 +5,10 @@ import {
   Table,
   NumberInput,
   Paper,
+  Select,
 } from "@mantine/core";
+import { EConduct } from "@prisma/client";
+import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
 
 import { useEffect, useState } from "react";
 import type { TStudentGradesResponse, TUpdateGrades } from "~/types/students";
@@ -80,6 +83,7 @@ export const ViewAndEditGrades = ({
       reset({
         studentId: student.id,
         grades: defaultValues,
+        conduct: student.conduct ?? undefined,
       });
     }
   }, [student, classSubjects, reset]);
@@ -100,6 +104,7 @@ export const ViewAndEditGrades = ({
       {
         id: data.studentId,
         grades: validGrades,
+        conduct: data.conduct,
       },
       {
         onSuccess: () => {
@@ -145,29 +150,95 @@ export const ViewAndEditGrades = ({
           <form onSubmit={handleSubmit(onSubmit)} className="h-full">
             <div className="flex h-full flex-col">
               <div className="flex-1 overflow-auto px-4 pb-4">
-                <div>
-                  <TextInput
-                    label="Họ và Tên"
-                    value={student.lastName + " " + student.firstName}
-                    readOnly={!isEditMode}
-                  />
-                  <div className="flex gap-2">
+                {/* Read-only Section */}
+                <Paper
+                  withBorder
+                  p="md"
+                  radius="md"
+                  className="mb-4 bg-gray-50"
+                >
+                  <h4 className="mb-3 font-semibold text-gray-700">
+                    Thông tin học viên
+                  </h4>
+                  <div className="space-y-2">
                     <TextInput
-                      label="Khóa"
-                      value={student?.termName}
+                      label="Họ và Tên"
+                      value={student.lastName + " " + student.firstName}
                       readOnly
-                      className="flex-1"
+                      styles={{
+                        input: {
+                          backgroundColor: "white",
+                          cursor: "default",
+                        },
+                      }}
                     />
-                    <TextInput
-                      label="Lớp"
-                      value={student?.className}
-                      readOnly
-                      className="flex-1"
+                    <div className="flex gap-2">
+                      <TextInput
+                        label="Khóa"
+                        value={student?.termName}
+                        readOnly
+                        className="flex-1"
+                        styles={{
+                          input: {
+                            backgroundColor: "white",
+                            cursor: "default",
+                          },
+                        }}
+                      />
+                      <TextInput
+                        label="Lớp"
+                        value={student?.className}
+                        readOnly
+                        className="flex-1"
+                        styles={{
+                          input: {
+                            backgroundColor: "white",
+                            cursor: "default",
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Paper>
+
+                {/* Conduct Field - Only show in edit mode */}
+                {isEditMode && (
+                  <div className="mb-4">
+                    <Select
+                      label="Đánh giá rèn luyện"
+                      placeholder="Chọn kết quả rèn luyện"
+                      value={watch("conduct") ?? null}
+                      onChange={(value) =>
+                        setValue("conduct", value as EConduct | undefined)
+                      }
+                      data={[
+                        {
+                          value: EConduct.EXCELLENT,
+                          label: CONDUCT_LANGUAGE_MAPPING[EConduct.EXCELLENT],
+                        },
+                        {
+                          value: EConduct.GOOD,
+                          label: CONDUCT_LANGUAGE_MAPPING[EConduct.GOOD],
+                        },
+                        {
+                          value: EConduct.AVERAGE,
+                          label: CONDUCT_LANGUAGE_MAPPING[EConduct.AVERAGE],
+                        },
+                        {
+                          value: EConduct.POOR,
+                          label: CONDUCT_LANGUAGE_MAPPING[EConduct.POOR],
+                        },
+                      ]}
+                      clearable
                     />
                   </div>
-                </div>
-                <div className="mt-2">
-                  <h4 className="font-semibold">Kết quả học tập</h4>
+                )}
+
+                {/* Academic Results */}
+                <div>
+                  <h4 className="mb-3 font-semibold text-gray-700">
+                    Kết quả học tập
+                  </h4>
 
                   <div className="mt-2">
                     {classSubjects && classSubjects.length > 0 ? (
@@ -240,163 +311,163 @@ export const ViewAndEditGrades = ({
                         Chưa có môn học nào trong lớp
                       </div>
                     )}
-                    {!isEditMode && (
-                      <>
-                        {" "}
-                        <div>
-                          <h4 className="mt-4 font-semibold">Tổng kết</h4>
-                        </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                          {/* Academic Performance Card */}
-                          <Paper
-                            withBorder
-                            p="md"
-                            radius="md"
-                            className="bg-linear-to-br from-blue-50 to-indigo-50"
-                          >
-                            <div className="mb-3 flex items-center gap-2">
-                              <div className="rounded-full bg-blue-500 p-2">
-                                <svg
-                                  className="h-4 w-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                  />
-                                </svg>
-                              </div>
-                              <h5 className="font-semibold text-blue-900">
-                                Kết quả học tập
-                              </h5>
+                  </div>
+                </div>
+
+                {/* Summary Section */}
+                <div>
+                  {!isEditMode && (
+                    <>
+                      {" "}
+                      <div>
+                        <h4 className="mt-4 font-semibold">Tổng kết</h4>
+                      </div>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {/* Academic Performance Card */}
+                        <Paper
+                          withBorder
+                          p="md"
+                          radius="md"
+                          className="bg-linear-to-br from-blue-50 to-indigo-50"
+                        >
+                          <div className="mb-3 flex items-center gap-2">
+                            <div className="rounded-full bg-blue-500 p-2">
+                              <svg
+                                className="h-4 w-4 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                              </svg>
                             </div>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-blue-700">
-                                  Điểm TB các môn có KQ:
+                            <h5 className="font-semibold text-blue-900">
+                              Kết quả học tập
+                            </h5>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-blue-700">
+                                Điểm TB các môn có KQ:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg font-bold text-blue-900">
+                                  {(student?.avgScoredSubjects ?? 0).toFixed(2)}
                                 </span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-blue-900">
-                                    {(student?.avgScoredSubjects ?? 0).toFixed(
-                                      2,
-                                    )}
-                                  </span>
-                                  <GradeBadge
-                                    score={student?.avgScoredSubjects || 0}
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-blue-700">
-                                  Xếp loại hiện tại:
-                                </span>
-                                <ClassificationBadge
-                                  classification={
-                                    student?.currentClassification ?? null
-                                  }
+                                <GradeBadge
+                                  score={student?.avgScoredSubjects || 0}
                                 />
                               </div>
-                            </div>
-                          </Paper>
-
-                          {/* Overall Performance Card */}
-                          <Paper
-                            withBorder
-                            p="md"
-                            radius="md"
-                            className="bg-linear-to-br from-emerald-50 to-green-50"
-                          >
-                            <div className="mb-3 flex items-center gap-2">
-                              <div className="rounded-full bg-emerald-500 p-2">
-                                <svg
-                                  className="h-4 w-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                              </div>
-                              <h5 className="font-semibold text-emerald-900">
-                                Tổng kết khóa học
-                              </h5>
-                            </div>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-emerald-700">
-                                  Điểm TB toàn khóa:
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-emerald-900">
-                                    {(student?.avgOverall ?? 0).toFixed(2)}
-                                  </span>
-                                  <GradeBadge
-                                    score={student?.avgOverall ?? 0}
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-emerald-700">
-                                  Xếp loại cuối khóa:
-                                </span>
-                                <ClassificationBadge
-                                  classification={
-                                    student?.finalClassification ?? null
-                                  }
-                                />
-                              </div>
-                            </div>
-                          </Paper>
-
-                          {/* Conduct Card */}
-                          <Paper
-                            withBorder
-                            p="md"
-                            radius="md"
-                            className="bg-linear-to-br from-purple-50 to-violet-50 md:col-span-2"
-                          >
-                            <div className="mb-3 flex items-center gap-2">
-                              <div className="rounded-full bg-purple-500 p-2">
-                                <svg
-                                  className="h-4 w-4 text-white"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                              </div>
-                              <h5 className="font-semibold text-purple-900">
-                                Đánh giá rèn luyện
-                              </h5>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-purple-700">
-                                Kết quả rèn luyện:
+                              <span className="text-sm text-blue-700">
+                                Xếp loại hiện tại:
                               </span>
-                              <ConductBadge
-                                conduct={student?.conduct ?? null}
+                              <ClassificationBadge
+                                classification={
+                                  (student?.avgScoredSubjects ?? 0) === 0
+                                    ? null
+                                    : (student?.currentClassification ?? null)
+                                }
                               />
                             </div>
-                          </Paper>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                          </div>
+                        </Paper>
+
+                        {/* Overall Performance Card */}
+                        <Paper
+                          withBorder
+                          p="md"
+                          radius="md"
+                          className="bg-linear-to-br from-emerald-50 to-green-50"
+                        >
+                          <div className="mb-3 flex items-center gap-2">
+                            <div className="rounded-full bg-emerald-500 p-2">
+                              <svg
+                                className="h-4 w-4 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </div>
+                            <h5 className="font-semibold text-emerald-900">
+                              Tổng kết khóa học
+                            </h5>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-emerald-700">
+                                Điểm TB toàn khóa:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg font-bold text-emerald-900">
+                                  {(student?.avgOverall ?? 0).toFixed(2)}
+                                </span>
+                                <GradeBadge score={student?.avgOverall ?? 0} />
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-emerald-700">
+                                Xếp loại cuối khóa:
+                              </span>
+                              <ClassificationBadge
+                                classification={
+                                  student?.finalClassification ?? null
+                                }
+                              />
+                            </div>
+                          </div>
+                        </Paper>
+
+                        {/* Conduct Card */}
+                        <Paper
+                          withBorder
+                          p="md"
+                          radius="md"
+                          className="bg-linear-to-br from-purple-50 to-violet-50 md:col-span-2"
+                        >
+                          <div className="mb-3 flex items-center gap-2">
+                            <div className="rounded-full bg-purple-500 p-2">
+                              <svg
+                                className="h-4 w-4 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                            </div>
+                            <h5 className="font-semibold text-purple-900">
+                              Đánh giá rèn luyện
+                            </h5>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-purple-700">
+                              Kết quả rèn luyện:
+                            </span>
+                            <ConductBadge conduct={student?.conduct ?? null} />
+                          </div>
+                        </Paper>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="shrink-0 border-t p-4">
