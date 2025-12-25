@@ -4,6 +4,7 @@ import {
   CONDUCT_CLASSIFICATION_MAPPINGS,
   EGradeClassification,
 } from "common/constants/students";
+import { EGradesOrderBy, EOrderDirection } from "common/enums/grades.enum";
 import { sql, type InferResult } from "kysely";
 import { getScoreClassification } from "utils/getGradeClassification";
 import { z } from "zod";
@@ -142,10 +143,18 @@ export const studentRouter = createTRPCRouter({
       z.object({
         classId: z.number().optional(),
         search: z.string().optional(),
+        orderBy: z
+          .nativeEnum(EGradesOrderBy)
+          .optional()
+          .default(EGradesOrderBy.NAME),
+        orderDirection: z
+          .nativeEnum(EOrderDirection)
+          .optional()
+          .default(EOrderDirection.ASC),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { classId, search } = input;
+      const { classId, search, orderBy, orderDirection } = input;
 
       const studentsQueryCompiled = kyselyDB
         .selectFrom("students")
@@ -192,7 +201,15 @@ export const studentRouter = createTRPCRouter({
       )`.as("examResults"),
         ])
         .groupBy("students.id")
-        .orderBy("students.first_name", "asc")
+        .$if(orderBy === EGradesOrderBy.NAME, (qb) =>
+          qb.orderBy("students.first_name", orderDirection),
+        )
+        .$if(orderBy === EGradesOrderBy.AVG_SCORED_SUBJECTS, (qb) =>
+          qb.orderBy("students.avg_scored_subjects", orderDirection),
+        )
+        .$if(orderBy === EGradesOrderBy.AVG_OVERALL, (qb) =>
+          qb.orderBy("students.avg_overall", orderDirection),
+        )
         .compile();
 
       const students = await ctx.db.$queryRawUnsafe<
@@ -225,6 +242,35 @@ export const studentRouter = createTRPCRouter({
             : null,
         };
       });
+
+      // Apply sorting for classification-based ordering (post-query)
+      if (
+        orderBy === EGradesOrderBy.CURRENT_CLASSIFICATION ||
+        orderBy === EGradesOrderBy.FINAL_CLASSIFICATION
+      ) {
+        const classificationOrder = {
+          [EGradeClassification.EXCELLENT]: 6,
+          [EGradeClassification.VERY_GOOD]: 5,
+          [EGradeClassification.GOOD]: 4,
+          [EGradeClassification.FAIRLY_GOOD]: 3,
+          [EGradeClassification.AVERAGE]: 2,
+          [EGradeClassification.FAILED]: 1,
+        };
+
+        processedStudentsData.sort((a, b) => {
+          const classificationField =
+            orderBy === EGradesOrderBy.CURRENT_CLASSIFICATION
+              ? "currentClassification"
+              : "finalClassification";
+          const classA = a[classificationField];
+          const classB = b[classificationField];
+          const orderA = classA ? classificationOrder[classA] : 0;
+          const orderB = classB ? classificationOrder[classB] : 0;
+
+          const diff = orderB - orderA;
+          return orderDirection === EOrderDirection.ASC ? -diff : diff;
+        });
+      }
 
       return processedStudentsData;
     }),
