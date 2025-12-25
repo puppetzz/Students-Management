@@ -318,9 +318,6 @@ const Subjects = () => {
           closeViewModal();
           setSelectedSubjectId(null);
         },
-        onError: (error) => {
-          toast.error(error.message ?? "Xóa Thất Bại!");
-        },
       },
     );
   }, [
