@@ -59,7 +59,7 @@ docker-compose up --build
 
 Docker will start:
 
-- students_app – Next.js app (port 3000)
+- qlhv_app – Next.js app (port 3000)
 
 - db – PostgreSQL database (port 5432)
 
@@ -70,7 +70,13 @@ Access the application at:
 ### 👉 4.2 Run Database Migrations
 
 ```
-docker-compose exec students_app npx prisma migrate deploy
+docker-compose exec app npx prisma migrate deploy
+```
+
+### 👉 4.3 Create user admin user (the first time you run the app)
+
+```
+curl -X POST "http://localhost:3000/api/trpc/user.generateAdmin" -H "x-api-key: <API_KEY_VALUE>" -H "Content-Type: application/json"
 ```
 
 ## ▶️ 5. Running the App Locally (without Docker)
