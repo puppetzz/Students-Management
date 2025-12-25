@@ -13,7 +13,6 @@ import { EUserRole } from "~/server/kysely/enums";
 import { kyselyDB } from "~/server/kysely/db";
 import { env } from "~/env";
 import { deleteFromS3 } from "utils/s3.server";
-import { profile } from "console";
 
 const getFinalClassification = (
   scoreClassification: EGradeClassification | null,
@@ -459,11 +458,11 @@ export const studentRouter = createTRPCRouter({
             scored: z.number(),
           }),
         ),
+        conduct: z.nativeEnum(EConduct).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, grades } = input;
-
+      const { id, grades, conduct } = input;
       const updatedGradeSubjects = grades.map((grade) => grade.subjectId);
 
       const countSubjectsInClassQueryCompiled = kyselyDB
@@ -577,32 +576,37 @@ export const studentRouter = createTRPCRouter({
         avgOverall = currentAvg;
       }
 
-      await Promise.all([
-        ctx.db.examResults.deleteMany({
-          where: {
-            subjectId: {
-              in: updatedGradeSubjects,
+      await ctx.db.$transaction(async (tx) => {
+        await Promise.all([
+          tx.examResults.deleteMany({
+            where: {
+              subjectId: {
+                in: updatedGradeSubjects,
+              },
+              studentId: id,
             },
-            studentId: id,
-          },
-        }),
-        ctx.db.examResults.createMany({
-          data: grades.map((grade) => ({
-            studentId: id,
-            subjectId: grade.subjectId,
-            scored: grade.scored,
-          })),
-        }),
-        ctx.db.students.update({
-          where: {
-            id,
-          },
-          data: {
-            avgScoredSubjects: currentAvg,
-            avgOverall,
-          },
-        }),
-      ]);
+          }),
+
+          tx.examResults.createMany({
+            data: grades.map((grade) => ({
+              studentId: id,
+              subjectId: grade.subjectId,
+              scored: grade.scored,
+            })),
+          }),
+
+          tx.students.update({
+            where: {
+              id,
+            },
+            data: {
+              avgScoredSubjects: currentAvg,
+              avgOverall,
+              conduct: conduct ?? undefined,
+            },
+          }),
+        ]);
+      });
 
       return;
     }),
@@ -623,6 +627,7 @@ export const studentRouter = createTRPCRouter({
                 scored: z.number(),
               }),
             ),
+            conduct: z.nativeEnum(EConduct).optional(),
           }),
         ),
       }),
@@ -635,6 +640,7 @@ export const studentRouter = createTRPCRouter({
         scored: number;
       }> = [];
       const updatedStudentIds: Array<number> = [];
+      const conductUpdatesMap = new Map<number, EConduct | undefined>();
 
       for (const studentUpdate of input.data) {
         const { studentId, grades } = studentUpdate;
@@ -650,6 +656,7 @@ export const studentRouter = createTRPCRouter({
           });
         }
 
+        conductUpdatesMap.set(studentId, studentUpdate.conduct ?? undefined);
         updatedStudentIds.push(studentId);
       }
 
@@ -809,6 +816,10 @@ export const studentRouter = createTRPCRouter({
         .case()
         .when("id", "=", -1)
         .then(sql`NULL`);
+      let caseExpressionConduct = kyselyDB
+        .case()
+        .when("id", "=", -1)
+        .then(sql`NULL`);
       for (const student of avgScoresToUpdate) {
         caseExpression = caseExpression
           .when("id", "=", student.id)
@@ -816,6 +827,14 @@ export const studentRouter = createTRPCRouter({
         caseExpressionOverall = caseExpressionOverall
           .when("id", "=", student.id)
           .then(student.avgOverall ?? sql`NULL`);
+        const conductToUpdate = conductUpdatesMap.get(student.id);
+        caseExpressionConduct = caseExpressionConduct
+          .when("id", "=", student.id)
+          .then(
+            conductToUpdate
+              ? sql`${sql.lit(conductToUpdate)}::"EConduct"`
+              : sql`NULL`,
+          );
       }
 
       const updateAvgsQuery = kyselyDB
@@ -825,30 +844,33 @@ export const studentRouter = createTRPCRouter({
           avg_overall: sql<
             number | null
           >`${caseExpressionOverall.else(sql`avg_overall`).end()}`,
+          conduct: sql<EConduct | null>`${caseExpressionConduct.else(sql`conduct`).end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)
         .compile();
 
-      await Promise.all([
-        ctx.db.examResults.deleteMany({
-          where: {
-            OR: input.data.map((studentUpdate) => ({
-              studentId: studentUpdate.studentId,
-              subjectId: {
-                in: updateExampleResults[studentUpdate.studentId],
-              },
-            })),
-          },
-        }),
-        ctx.db.examResults.createMany({
-          data: updatedData,
-        }),
-        ctx.db.$executeRawUnsafe(
-          updateAvgsQuery.sql,
-          ...updateAvgsQuery.parameters,
-        ),
-      ]);
+      await ctx.db.$transaction(async (tx) => {
+        await Promise.all([
+          tx.examResults.deleteMany({
+            where: {
+              OR: input.data.map((studentUpdate) => ({
+                studentId: studentUpdate.studentId,
+                subjectId: {
+                  in: updateExampleResults[studentUpdate.studentId],
+                },
+              })),
+            },
+          }),
+          tx.examResults.createMany({
+            data: updatedData,
+          }),
+          tx.$executeRawUnsafe(
+            updateAvgsQuery.sql,
+            ...updateAvgsQuery.parameters,
+          ),
+        ]);
+      });
     }),
 
   importGradesFromExcel: roleBasedProcedure([
@@ -867,9 +889,7 @@ export const studentRouter = createTRPCRouter({
                 scored: z.number(),
               }),
             ),
-            conduct: z
-              .enum(Object.values(EConduct) as [string, ...string[]])
-              .optional(),
+            conduct: z.nativeEnum(EConduct).optional(),
           }),
         ),
       }),
@@ -906,6 +926,7 @@ export const studentRouter = createTRPCRouter({
             acc.push({
               studentId: curr.id,
               grades: updateData.grades,
+              conduct: updateData.conduct, // Add conduct here
             });
           }
           return acc;
@@ -913,8 +934,11 @@ export const studentRouter = createTRPCRouter({
         [] as Array<{
           studentId: number;
           grades: { subjectId: number; scored: number }[];
+          conduct?: EConduct;
         }>,
       );
+
+      const conductUpdatesMap = new Map<number, EConduct | undefined>();
 
       for (const studentUpdate of updateStudentsData) {
         const { studentId, grades } = studentUpdate;
@@ -930,6 +954,7 @@ export const studentRouter = createTRPCRouter({
           });
         }
 
+        conductUpdatesMap.set(studentId, studentUpdate.conduct ?? undefined);
         updatedStudentIds.push(studentId);
       }
 
@@ -1090,6 +1115,10 @@ export const studentRouter = createTRPCRouter({
         .case()
         .when("id", "=", -1)
         .then(sql`NULL`);
+      let caseExpressionConduct = kyselyDB
+        .case()
+        .when("id", "=", -1)
+        .then(sql`NULL`);
       for (const student of avgScoresToUpdate) {
         caseExpression = caseExpression
           .when("id", "=", student.id)
@@ -1097,6 +1126,14 @@ export const studentRouter = createTRPCRouter({
         caseExpressionOverall = caseExpressionOverall
           .when("id", "=", student.id)
           .then(student.avgOverall ?? sql`NULL`);
+        const conductToUpdate = conductUpdatesMap.get(student.id);
+        caseExpressionConduct = caseExpressionConduct
+          .when("id", "=", student.id)
+          .then(
+            conductToUpdate
+              ? sql`${sql.lit(conductToUpdate)}::"EConduct"`
+              : sql`NULL`,
+          );
       }
 
       const updateAvgsQuery = kyselyDB
@@ -1106,30 +1143,33 @@ export const studentRouter = createTRPCRouter({
           avg_overall: sql<
             number | null
           >`${caseExpressionOverall.else(sql`avg_overall`).end()}`,
+          conduct: sql<EConduct | null>`${caseExpressionConduct.else(sql`conduct`).end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)
         .compile();
 
-      await Promise.all([
-        ctx.db.examResults.deleteMany({
-          where: {
-            OR: updateStudentsData.map((studentUpdate) => ({
-              studentId: studentUpdate.studentId,
-              subjectId: {
-                in: updateExampleResults[studentUpdate.studentId],
-              },
-            })),
-          },
-        }),
-        ctx.db.examResults.createMany({
-          data: updatedData,
-        }),
-        ctx.db.$executeRawUnsafe(
-          updateAvgsQuery.sql,
-          ...updateAvgsQuery.parameters,
-        ),
-      ]);
+      await ctx.db.$transaction(async (tx) => {
+        await Promise.all([
+          tx.examResults.deleteMany({
+            where: {
+              OR: updateStudentsData.map((studentUpdate) => ({
+                studentId: studentUpdate.studentId,
+                subjectId: {
+                  in: updateExampleResults[studentUpdate.studentId],
+                },
+              })),
+            },
+          }),
+          tx.examResults.createMany({
+            data: updatedData,
+          }),
+          tx.$executeRawUnsafe(
+            updateAvgsQuery.sql,
+            ...updateAvgsQuery.parameters,
+          ),
+        ]);
+      });
     }),
   importStudentsFromExcel: roleBasedProcedure([
     EUserRole.ADMIN,

@@ -163,7 +163,7 @@ export const exportStudentGradesToExcelWithCustomHeaders = (
     "AVG_OVERALL",
     "CURRENT_CLASS",
     "FINAL_CLASS",
-    "CONDUCT",
+    "RL",
   ];
 
   // Default display headers (Vietnamese names)
@@ -232,7 +232,7 @@ export const exportStudentGradesToExcelWithCustomHeaders = (
     if (header.includes("FN")) return { wch: 15 }; // First Name
     if (header.includes("LN")) return { wch: 15 }; // Last Name
     if (header.includes("AVG") || header.includes("CLASS")) return { wch: 18 };
-    if (header.includes("CONDUCT")) return { wch: 12 };
+    if (header.includes("RL")) return { wch: 12 };
     return { wch: 12 }; // Default for subject columns
   });
   worksheet["!cols"] = colWidths;
