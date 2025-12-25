@@ -29,6 +29,7 @@ export const trainingProgramsRouter = createTRPCRouter({
 
       const programsQuery = kyselyDB
         .selectFrom("training_programs")
+        .where("training_programs.is_deleted", "=", false)
         .leftJoin(
           "training_program_subjects",
           "training_programs.id",
@@ -98,6 +99,9 @@ export const trainingProgramsRouter = createTRPCRouter({
 
   getOptions: publicProcedure.query(async ({ ctx }) => {
     const programs = await ctx.db.trainingProgram.findMany({
+      where: {
+        isDeleted: false,
+      },
       select: {
         id: true,
         name: true,
@@ -171,7 +175,7 @@ export const trainingProgramsRouter = createTRPCRouter({
 
       const [programExists, subjects] = await Promise.all([
         ctx.db.trainingProgram.findUnique({
-          where: { id },
+          where: { id, isDeleted: false },
           select: { id: true, trainingProgramSubjects: true },
         }),
         ctx.db.subjects.findMany({
@@ -201,9 +205,10 @@ export const trainingProgramsRouter = createTRPCRouter({
           message: "Chương trình đào tạo không tồn tại",
         });
 
-      const oldSubjectIds =
-        programExists?.trainingProgramSubjects.map((tps) => tps.subjectId) ??
-        [];
+      const oldSubjectIds: number[] =
+        programExists?.trainingProgramSubjects.map(
+          (tps: { subjectId: number }) => tps.subjectId,
+        ) ?? [];
 
       const removedSubjectIds = oldSubjectIds.filter(
         (oldId) => !subjectIds?.includes(oldId),
@@ -363,9 +368,16 @@ export const trainingProgramsRouter = createTRPCRouter({
   delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const programExists = await ctx.db.trainingProgram.findUnique({
-        where: { id: input.id },
-      });
+      const [programExists, hasClasses] = await Promise.all([
+        ctx.db.trainingProgram.findUnique({
+          where: { id: input.id, isDeleted: false },
+        }),
+        ctx.db.classes.findFirst({
+          where: {
+            trainingProgramId: input.id,
+          },
+        }),
+      ]);
 
       if (!programExists) {
         throw new TRPCError({
@@ -374,16 +386,47 @@ export const trainingProgramsRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.$transaction(async (tx) => {
-        await tx.trainingProgramSubjects.deleteMany({
-          where: { trainingProgramId: input.id },
+      if (hasClasses) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Không thể xóa chương trình đào tạo vì đang tồn tại lớp học sử dụng chương trình này",
         });
+      }
 
-        await tx.trainingProgram.delete({
-          where: { id: input.id },
-        });
+      const deletedProgram = await ctx.db.trainingProgram.update({
+        where: { id: input.id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
       });
 
-      return { success: true };
+      return deletedProgram;
+    }),
+
+  restore: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const programExists = await ctx.db.trainingProgram.findUnique({
+        where: { id: input.id, isDeleted: true },
+      });
+
+      if (!programExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chương trình đào tạo đã bị xóa không tồn tại",
+        });
+      }
+
+      const restoredProgram = await ctx.db.trainingProgram.update({
+        where: { id: input.id },
+        data: {
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+
+      return restoredProgram;
     }),
 });

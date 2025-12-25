@@ -178,16 +178,19 @@ model TrainingProgramSubjects {
 }
 
 model TrainingProgram {
-    id          Int      @id @default(autoincrement())
+    id          Int       @id @default(autoincrement())
     name        String
     description String?
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @default(now()) @map("updated_at")
+    isDeleted   Boolean   @default(false) @map("is_deleted")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @default(now()) @map("updated_at")
+    deletedAt   DateTime? @map("deleted_at")
 
     trainingProgramSubjects TrainingProgramSubjects[]
     classes                 Classes[]
 
     @@index([name])
+    @@index([isDeleted])
     @@map("training_programs")
 }
 

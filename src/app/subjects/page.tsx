@@ -602,34 +602,27 @@ const Subjects = () => {
             )}
           </div>
 
-          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
-            <div className="mt-6 flex w-full gap-2 sm:w-auto">
+          <div className="mt-2 flex items-center justify-between">
+            {isViewModal && (
+              <Button color="red" onClick={handleOpenConfirmModal}>
+                Xóa
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
               {isViewModal ? (
-                <>
-                  <Button color="red" onClick={handleOpenConfirmModal}>
-                    Xóa
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsViewModal(false);
-                    }}
-                    className="flex-1 sm:flex-none"
-                  >
-                    Chỉnh Sửa
-                  </Button>
-                </>
-              ) : (
-                <Button type="submit" className="flex-1 sm:flex-none">
-                  Xác Nhận
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsViewModal(false);
+                  }}
+                >
+                  Chỉnh Sửa
                 </Button>
+              ) : (
+                <Button type="submit">Xác Nhận</Button>
               )}
-              <Button
-                color="red"
-                onClick={closeViewModal}
-                className="flex-1 sm:flex-none"
-              >
+              <Button color="gray" onClick={closeViewModal}>
                 Hủy
               </Button>
             </div>
