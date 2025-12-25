@@ -295,7 +295,7 @@ const Students = () => {
               />
               <Select
                 label="Lớp"
-                className="w-30"
+                className="w-50"
                 data={classesSelectData}
                 value={classId ? classId.toString() : null}
                 onChange={(value) => {
@@ -304,7 +304,7 @@ const Students = () => {
               />
               <TextInput
                 label="Tìm Kiếm"
-                className="w-50"
+                className="w-80"
                 onChange={(e) => {
                   debouncedSearch(e.target.value);
                 }}

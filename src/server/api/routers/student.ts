@@ -200,7 +200,8 @@ export const studentRouter = createTRPCRouter({
       >(studentsQueryCompiled.sql, ...studentsQueryCompiled.parameters);
 
       const processedStudentsData = students.map((student) => {
-        const haveAnyScores = student.examResults.length > 0;
+        const haveAnyScores =
+          student.examResults.length > 0 && student.examResults?.[0]?.subjectId;
 
         const currentClassification = !haveAnyScores
           ? null

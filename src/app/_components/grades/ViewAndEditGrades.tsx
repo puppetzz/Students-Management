@@ -370,7 +370,9 @@ export const ViewAndEditGrades = ({
                               </span>
                               <ClassificationBadge
                                 classification={
-                                  student?.currentClassification ?? null
+                                  (student?.avgScoredSubjects ?? 0) === 0
+                                    ? null
+                                    : (student?.currentClassification ?? null)
                                 }
                               />
                             </div>
