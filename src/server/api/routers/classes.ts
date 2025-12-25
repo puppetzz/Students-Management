@@ -61,6 +61,7 @@ export const classesRouter = createTRPCRouter({
         )
         .innerJoin("terms", "classes.term_id", "terms.id")
         .where("classes.is_deleted", "=", false)
+        .where("terms.is_deleted", "=", false)
         .$if(!!search, (qb) =>
           qb.where("classes.name", "ilike", `%${search!}%`),
         )
