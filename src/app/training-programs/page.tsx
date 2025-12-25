@@ -95,6 +95,8 @@ const TrainingPrograms = () => {
   useTRPCErrorHandler(programsQuery.error);
   useTRPCErrorHandler(subjectsQuery.error);
 
+  const utils = api.useUtils();
+
   const programUpdateMutation = api.trainingPrograms.update.useMutation();
   const programCreateMutation = api.trainingPrograms.create.useMutation();
   const programDeleteMutation = api.trainingPrograms.delete.useMutation();
@@ -251,12 +253,14 @@ const TrainingPrograms = () => {
           onSuccess: () => {
             toast.success("Chỉnh sửa thành công!");
             void programsQuery.refetch();
+            void utils.student.getWithGrades.invalidate();
+
             closeViewModal();
           },
         },
       );
     },
-    [programUpdateMutation, closeViewModal, programsQuery],
+    [programUpdateMutation, closeViewModal, programsQuery, utils],
   );
 
   const onSubmitCreateForm = useCallback(

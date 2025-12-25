@@ -821,8 +821,10 @@ export const studentRouter = createTRPCRouter({
       const updateAvgsQuery = kyselyDB
         .updateTable("students")
         .set({
-          avg_scored_subjects: sql<number>`${caseExpression.end()}`,
-          avg_overall: sql<number | null>`${caseExpressionOverall.end()}`,
+          avg_scored_subjects: sql<number>`${caseExpression.else(sql`avg_scored_subjects`).end()}`,
+          avg_overall: sql<
+            number | null
+          >`${caseExpressionOverall.else(sql`avg_overall`).end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)
@@ -1100,8 +1102,10 @@ export const studentRouter = createTRPCRouter({
       const updateAvgsQuery = kyselyDB
         .updateTable("students")
         .set({
-          avg_scored_subjects: sql<number>`${caseExpression.end()}`,
-          avg_overall: sql<number | null>`${caseExpressionOverall.end()}`,
+          avg_scored_subjects: sql<number>`${caseExpression.else(sql`avg_scored_subjects`).end()}`,
+          avg_overall: sql<
+            number | null
+          >`${caseExpressionOverall.else(sql`avg_overall`).end()}`,
           updated_at: sql`CURRENT_TIMESTAMP`,
         })
         .where("id", "in", updatedStudentIds)

@@ -8,7 +8,7 @@ import {
   createTrainingProgramSchema,
   updateTrainingProgramSchema,
 } from "common/schema/training-program";
-import { EUserRole } from "@prisma/client";
+import { EUserRole, Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 
 export const trainingProgramsRouter = createTRPCRouter({
@@ -172,6 +172,7 @@ export const trainingProgramsRouter = createTRPCRouter({
       const [programExists, subjects] = await Promise.all([
         ctx.db.trainingProgram.findUnique({
           where: { id },
+          select: { id: true, trainingProgramSubjects: true },
         }),
         ctx.db.subjects.findMany({
           where: {
@@ -181,26 +182,137 @@ export const trainingProgramsRouter = createTRPCRouter({
         }),
       ]);
 
-      if (!subjectIds?.length)
+      if (subjectIds && subjectIds.length < 1)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Chương trình đào tạo phải có ít nhất một môn học!",
         });
 
-      if (subjectIds && subjects.length !== subjectIds.length) {
+      if (subjectIds && subjects.length !== subjectIds.length)
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
             "Danh sách môn học chứa môn học không tồn tại hoặc đã bị xóa!",
         });
-      }
 
-      if (!programExists) {
+      if (!programExists)
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Chương trình đào tạo không tồn tại",
         });
+
+      const oldSubjectIds =
+        programExists?.trainingProgramSubjects.map((tps) => tps.subjectId) ??
+        [];
+
+      const removedSubjectIds = oldSubjectIds.filter(
+        (oldId) => !subjectIds?.includes(oldId),
+      );
+      const addedSubjectIds = subjectIds
+        ? subjectIds.filter((newId) => !oldSubjectIds.includes(newId))
+        : [];
+
+      const [updatedProgramsStudent, addedSubjects] = await Promise.all([
+        ctx.db.students.findMany({
+          where: {
+            class: {
+              trainingProgramId: id,
+            },
+          },
+          select: {
+            id: true,
+            examResults: {
+              select: {
+                subject: {
+                  select: {
+                    id: true,
+                    scoreCoefficient: true,
+                  },
+                },
+                scored: true,
+              },
+              where: {
+                subjectId: {
+                  notIn: removedSubjectIds,
+                },
+              },
+            },
+          },
+        }),
+        ctx.db.subjects.findMany({
+          where: {
+            id: { in: addedSubjectIds },
+          },
+          select: {
+            id: true,
+            scoreCoefficient: true,
+          },
+        }),
+      ]);
+
+      const updatedStudentAvgs = updatedProgramsStudent.map((student) => {
+        // Calculate weighted scores from existing exam results
+        const { scoreCoefficient, sumOfScored } = student.examResults.reduce(
+          (acc, { subject, scored }) => ({
+            scoreCoefficient: acc.scoreCoefficient + subject.scoreCoefficient,
+            sumOfScored: acc.sumOfScored + scored * subject.scoreCoefficient,
+          }),
+          { scoreCoefficient: 0, sumOfScored: 0 },
+        );
+
+        // Add score coefficients from newly added subjects (no scores yet)
+        const totalScoreCoefficient =
+          scoreCoefficient +
+          addedSubjects.reduce((sum, subj) => sum + subj.scoreCoefficient, 0);
+
+        const currentAvgScore = totalScoreCoefficient
+          ? sumOfScored / totalScoreCoefficient
+          : 0;
+
+        // Set avgOverall only if student has completed all existing subjects
+        const avgOverall =
+          student.examResults.length === subjectIds!.length
+            ? currentAvgScore
+            : undefined;
+
+        return {
+          id: student.id,
+          currentAvgScore,
+          avgOverall,
+        };
+      });
+
+      let caseExpression = kyselyDB.case().when("id", "=", -1).then(0);
+      let caseExpressionOverall = kyselyDB
+        .case()
+        .when("id", "=", -1)
+        .then(sql`NULL`);
+      for (const student of updatedStudentAvgs) {
+        caseExpression = caseExpression
+          .when("id", "=", student.id)
+          .then(student.currentAvgScore);
+        caseExpressionOverall = caseExpressionOverall
+          .when("id", "=", student.id)
+          .then(student.avgOverall ?? sql`NULL`);
       }
+
+      const updateAvgsQuery = kyselyDB
+        .updateTable("students")
+        .set({
+          avg_scored_subjects: sql<number>`${caseExpression.else(sql`avg_scored_subjects`).end()}`,
+          avg_overall: sql<
+            number | null
+          >`${caseExpressionOverall.else(sql`avg_overall`).end()}`,
+          updated_at: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(
+          "id",
+          "in",
+          updatedProgramsStudent.length
+            ? updatedProgramsStudent.map((s) => s.id)
+            : [-1],
+        )
+        .compile();
 
       const updatedProgram = await ctx.db.$transaction(async (tx) => {
         const updated = await tx.trainingProgram.update({
@@ -225,6 +337,21 @@ export const trainingProgramsRouter = createTRPCRouter({
               })),
             });
           }
+          await tx.examResults.deleteMany({
+            where: {
+              subjectId: { in: removedSubjectIds },
+              student: {
+                class: {
+                  trainingProgramId: id,
+                },
+              },
+            },
+          });
+
+          await tx.$executeRawUnsafe(
+            updateAvgsQuery.sql,
+            ...updateAvgsQuery.parameters,
+          );
         }
 
         return updated;
