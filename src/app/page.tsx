@@ -58,11 +58,11 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center text-white">
-          <h1 className="mb-4 text-5xl font-bold md:text-6xl lg:text-7xl">
+          <h1 className="mb-4 text-5xl font-bold uppercase md:text-6xl lg:text-7xl">
             Hệ Thống Quản Lý Học Viên
           </h1>
           <p className="max-w-2xl text-xl md:text-2xl">
-            Giải pháp toàn diện cho việc quản lý học viên, lớp học và điểm số
+            Giải pháp toàn diện cho việc quản lý và giáo dục đào tạo
           </p>
         </div>
         {/* Decorative Elements */}
