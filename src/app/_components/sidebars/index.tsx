@@ -55,7 +55,7 @@ const data = [
     link: "/subjects",
     label: "Môn Học",
     icon: IconBook2,
-    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
   },
   {
     key: "training-programs",

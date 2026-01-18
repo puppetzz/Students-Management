@@ -38,8 +38,13 @@ import {
 } from "common/schema/subject";
 import { toast } from "react-toastify";
 import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
+import { useSession } from "next-auth/react";
+import { EUserRole } from "~/server/kysely/enums";
 
 const Subjects = () => {
+  const { data: session } = useSession();
+  const isUserRole = session?.user?.role === EUserRole.USER;
+
   const [isViewModal, setIsViewModal] = useState(true);
   const [selectedMaterials, setSelectedMaterials] = useState<
     TSubjectMaterial[] | null
@@ -357,11 +362,13 @@ const Subjects = () => {
           />
         </div>
 
-        <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal} color="green">
-            Thêm Môn Học
-          </Button>
-        </div>
+        {!isUserRole && (
+          <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
+            <Button onClick={handleOpenCreateModal} color="green">
+              Thêm Môn Học
+            </Button>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2 overflow-x-auto">
           <div className="min-w-0 overflow-x-auto">
@@ -600,22 +607,26 @@ const Subjects = () => {
           </div>
 
           <div className="mt-2 flex items-center justify-between">
-            {isViewModal && (
+            {isViewModal && !isUserRole && (
               <Button color="red" onClick={handleOpenConfirmModal}>
                 Xóa
               </Button>
             )}
             <div className="ml-auto flex gap-2">
               {isViewModal ? (
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsViewModal(false);
-                  }}
-                >
-                  Chỉnh Sửa
-                </Button>
+                <>
+                  {!isUserRole && (
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsViewModal(false);
+                      }}
+                    >
+                      Chỉnh Sửa
+                    </Button>
+                  )}
+                </>
               ) : (
                 <Button type="submit">Xác Nhận</Button>
               )}

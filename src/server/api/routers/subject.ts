@@ -166,7 +166,11 @@ export const subjectRouter = createTRPCRouter({
       };
     }),
 
-  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getById: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         id: z.number(),

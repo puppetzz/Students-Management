@@ -32,7 +32,7 @@ export default function Home() {
       href: "/subjects",
       icon: "📚",
       color: "bg-purple-500",
-      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
     },
     {
       title: "Điểm Số",
