@@ -244,7 +244,9 @@ const Students = () => {
         />
         <div className="mb-5 flex items-center justify-between py-2">
           <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
-          <h1 className="text-3xl font-bold uppercase">Quản Lý Học Viên</h1>
+          <h1 className="text-3xl font-bold text-[#2B3103] uppercase">
+            Quản Lý Học Viên
+          </h1>
           <Link href="/">
             <img
               src="/TQSQK5.png"

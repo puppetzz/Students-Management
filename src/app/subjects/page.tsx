@@ -353,7 +353,7 @@ const Subjects = () => {
             alt="Logo"
             className="left-4 h-12 w-12 sm:h-16 sm:w-16"
           />
-          <h1 className="text-center text-2xl font-bold uppercase sm:text-3xl">
+          <h1 className="text-center text-2xl font-bold text-[#2B3103] uppercase sm:text-3xl">
             Quản Lý Môn Học
           </h1>
           <Link href="/">

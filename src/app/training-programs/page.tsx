@@ -329,7 +329,7 @@ const TrainingPrograms = () => {
         <div
           className="absolute inset-0 z-[-1]"
           style={{
-            backgroundImage: "url(/bg_1.jpg)",
+            backgroundImage: "url(/bg_3.jpg)",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
@@ -338,7 +338,7 @@ const TrainingPrograms = () => {
         />
         <div className="mb-5 flex items-center justify-between py-2">
           <img src="/CB.png" alt="Logo" className="left-4 h-16 w-16" />
-          <h1 className="text-3xl font-bold uppercase">
+          <h1 className="text-3xl font-bold text-[#2B3103] uppercase">
             Quản Lý Chương Trình Đào Tạo
           </h1>
           <Link href="/">
