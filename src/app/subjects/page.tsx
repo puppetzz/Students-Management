@@ -23,6 +23,7 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTrash, IconPlus } from "@tabler/icons-react";
 import useSearchParams from "~/hooks/useSearchParams";
+import Link from "next/link";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
 import { parseNumber } from "utils/parseNumber";
@@ -355,11 +356,13 @@ const Subjects = () => {
           <h1 className="text-center text-2xl font-bold uppercase sm:text-3xl">
             Quản Lý Môn Học
           </h1>
-          <img
-            src="/TQSQK5.png"
-            alt="Logo"
-            className="top-0 right-4 h-12 w-12 sm:h-16 sm:w-16"
-          />
+          <Link href="/">
+            <img
+              src="/TQSQK5.png"
+              alt="Logo"
+              className="top-0 right-4 h-12 w-12 cursor-pointer sm:h-16 sm:w-16"
+            />
+          </Link>
         </div>
 
         {!isUserRole && (

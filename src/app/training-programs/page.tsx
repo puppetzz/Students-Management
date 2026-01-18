@@ -20,6 +20,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSearchParams from "~/hooks/useSearchParams";
+import Link from "next/link";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE } from "common/constants";
 import { api } from "~/trpc/react";
 import { parseNumber } from "utils/parseNumber";
@@ -340,11 +341,13 @@ const TrainingPrograms = () => {
           <h1 className="text-3xl font-bold uppercase">
             Quản Lý Chương Trình Đào Tạo
           </h1>
-          <img
-            src="/TQSQK5.png"
-            alt="Logo"
-            className="top-0 right-4 h-16 w-16"
-          />
+          <Link href="/">
+            <img
+              src="/TQSQK5.png"
+              alt="Logo"
+              className="top-0 right-4 h-16 w-16 cursor-pointer"
+            />
+          </Link>
         </div>
         {!isUserRole && (
           <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
