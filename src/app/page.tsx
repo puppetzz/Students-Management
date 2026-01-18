@@ -1,14 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import { UserSection } from "./_components/UserSection";
+import { useSession } from "next-auth/react";
+import { EUserRole } from "~/server/kysely/enums";
+import { useMemo } from "react";
 
 export default function Home() {
-  const navigationCards = [
+  const { data: session } = useSession();
+
+  const allNavigationCards = [
     {
       title: "Học Viên",
       description: "Quản lý thông tin học viên",
       href: "/students",
       icon: "👥",
       color: "bg-blue-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
     },
     {
       title: "Lớp Học",
@@ -16,6 +24,7 @@ export default function Home() {
       href: "/classes",
       icon: "🎓",
       color: "bg-green-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
     },
     {
       title: "Môn Học",
@@ -23,6 +32,7 @@ export default function Home() {
       href: "/subjects",
       icon: "📚",
       color: "bg-purple-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
     },
     {
       title: "Điểm Số",
@@ -30,6 +40,7 @@ export default function Home() {
       href: "/grades",
       icon: "📋",
       color: "bg-orange-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
     },
     {
       title: "Khóa Học",
@@ -37,8 +48,34 @@ export default function Home() {
       href: "/terms",
       icon: "📅",
       color: "bg-pink-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
+    },
+    {
+      title: "Chương Trình Đào Tạo",
+      description: "Xem chương trình đào tạo",
+      href: "/training-programs",
+      icon: "📖",
+      color: "bg-indigo-500",
+      allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
+    },
+    {
+      title: "Người Dùng",
+      description: "Quản lý người dùng hệ thống",
+      href: "/users",
+      icon: "👤",
+      color: "bg-red-500",
+      allowedRoles: [EUserRole.SUPER_ADMIN],
     },
   ];
+
+  // Filter cards based on user role
+  const navigationCards = useMemo(() => {
+    if (!session?.user?.role) return [];
+    const userRole = session.user.role as EUserRole;
+    return allNavigationCards.filter((card) =>
+      card.allowedRoles.includes(userRole),
+    );
+  }, [session?.user?.role]);
 
   return (
     <div className="min-h-screen bg-gray-50">

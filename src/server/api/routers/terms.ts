@@ -10,7 +10,11 @@ import {
 import { EUserRole } from "~/server/kysely/enums";
 
 export const termRouter = createTRPCRouter({
-  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getAll: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         search: z.string().optional(),
@@ -56,7 +60,11 @@ export const termRouter = createTRPCRouter({
       };
     }),
 
-  getById: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getById: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         id: z.number(),

@@ -138,7 +138,11 @@ export const studentRouter = createTRPCRouter({
       };
     }),
 
-  getWithGrades: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getWithGrades: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         classId: z.number().optional(),

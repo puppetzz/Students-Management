@@ -15,6 +15,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useDebouncedCallback, useDisclosure } from "@mantine/hooks";
+import { useSession } from "next-auth/react";
 import {
   IconDotsVertical,
   IconFilter,
@@ -34,8 +35,12 @@ import { ImportExcelModal } from "../_components/grades/ImportExcelModal";
 import { ExportGradeButton } from "../_components/grades/ExportGradeButton";
 import { StatisticsModal } from "../_components/grades/StatisticsModal";
 import { useTRPCErrorHandler } from "~/hooks/useTRPCErrorHandler";
+import { EUserRole } from "~/server/kysely/enums";
 
 const Grades = () => {
+  const { data: session } = useSession();
+  const isUserRole = session?.user?.role === EUserRole.USER;
+
   const searchParams = useSearchParams();
 
   const search = searchParams.getParam("search");
@@ -335,19 +340,23 @@ const Grades = () => {
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] bg-white px-2 py-1">
           <div className="flex justify-between gap-2 py-2">
+            {!isUserRole && (
+              <div className="flex gap-2">
+                <Button color="blue" onClick={openBatchUpdateModal}>
+                  Cập Nhật Điểm
+                </Button>
+              </div>
+            )}
             <div className="flex gap-2">
-              <Button color="blue" onClick={openBatchUpdateModal}>
-                Cập Nhật Điểm
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                color="green"
-                variant="outline"
-                onClick={openImportExcelModal}
-              >
-                Nhập Từ Excel
-              </Button>
+              {!isUserRole && (
+                <Button
+                  color="green"
+                  variant="outline"
+                  onClick={openImportExcelModal}
+                >
+                  Nhập Từ Excel
+                </Button>
+              )}
               <ExportGradeButton
                 students={studentsQuery.data ?? []}
                 subjects={subjectsQuery.data?.data ?? []}
@@ -396,14 +405,16 @@ const Grades = () => {
             </div>
             <div className="flex flex-col justify-end gap-2">
               <div className="flex gap-2">
-                <Button
-                  color="violet"
-                  variant="outline"
-                  onClick={openStatisticsModal}
-                  disabled={!classId}
-                >
-                  Thống Kê
-                </Button>
+                {!isUserRole && (
+                  <Button
+                    color="violet"
+                    variant="outline"
+                    onClick={openStatisticsModal}
+                    disabled={!classId}
+                  >
+                    Thống Kê
+                  </Button>
+                )}
                 <div className="flex flex-col justify-center">
                   <Menu shadow="md" width={200}>
                     <Menu.Target>
@@ -426,6 +437,10 @@ const Grades = () => {
                         <Checkbox
                           label="Tìm kiếm"
                           checked={visibleFilters.search}
+                          onChange={() => {
+                            /* empty */
+                          }}
+                          readOnly
                         />
                       </Menu.Item>
                       <Menu.Item
@@ -440,6 +455,10 @@ const Grades = () => {
                         <Checkbox
                           label="Sắp xếp"
                           checked={visibleFilters.sort}
+                          onChange={() => {
+                            /* empty */
+                          }}
+                          readOnly
                         />
                       </Menu.Item>
                     </Menu.Dropdown>

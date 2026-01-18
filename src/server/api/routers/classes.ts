@@ -32,7 +32,11 @@ const getFinalClassification = (
 };
 
 export const classesRouter = createTRPCRouter({
-  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getAll: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         search: z.string().optional(),

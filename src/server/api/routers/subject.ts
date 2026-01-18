@@ -11,7 +11,11 @@ import type { TSubject, TSubjectMaterial } from "~/types/subjects";
 
 export const subjectRouter = createTRPCRouter({
   // Lightweight API for select boxes - returns only id and name
-  getOptions: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getOptions: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         page: z.number().min(1).optional(),
@@ -82,7 +86,11 @@ export const subjectRouter = createTRPCRouter({
     }),
 
   // Full API for displaying subjects on screen with pagination
-  getAll: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  getAll: roleBasedProcedure([
+    EUserRole.ADMIN,
+    EUserRole.SUPER_ADMIN,
+    EUserRole.USER,
+  ])
     .input(
       z.object({
         page: z.number().min(1).default(DEFAULT_PAGE),

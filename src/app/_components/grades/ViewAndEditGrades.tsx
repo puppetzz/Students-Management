@@ -26,6 +26,8 @@ import { api } from "~/trpc/react";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
+import { useSession } from "next-auth/react";
+import { EUserRole } from "~/server/kysely/enums";
 
 type Props = {
   opened: boolean;
@@ -45,6 +47,8 @@ export const ViewAndEditGrades = ({
   student,
   classSubjects = [],
 }: Props) => {
+  const { data: session } = useSession();
+  const isUserRole = session?.user?.role === EUserRole.USER;
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
@@ -494,7 +498,9 @@ export const ViewAndEditGrades = ({
                       >
                         Đóng
                       </Button>
-                      <Button onClick={handleClickEdit}>Chỉnh sửa</Button>
+                      {!isUserRole && (
+                        <Button onClick={handleClickEdit}>Chỉnh sửa</Button>
+                      )}
                     </>
                   )}
                 </div>

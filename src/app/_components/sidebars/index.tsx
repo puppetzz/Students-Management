@@ -27,43 +27,49 @@ const data = [
     link: "/students",
     label: "Quản Lý Học Viên",
     icon: IconUsers,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
   },
   {
     key: "grades",
     link: "/grades",
     label: "Quản Lý Điểm",
     icon: IconChartBar,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
   },
   {
     key: "terms",
     link: "/terms",
     label: "Quản Lý Khóa Học",
     icon: IconBook,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
   },
   {
     key: "classes",
     link: "/classes",
     label: "Quản Lý Lớp",
     icon: IconSchool,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
   },
   {
     key: "subjects",
     link: "/subjects",
     label: "Môn Học",
     icon: IconBook2,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN],
   },
   {
     key: "training-programs",
     link: "/training-programs",
     label: "Chương Trình Đào Tạo",
     icon: IconBook,
+    allowedRoles: [EUserRole.ADMIN, EUserRole.SUPER_ADMIN, EUserRole.USER],
   },
   {
     key: "users",
     link: "/users",
     label: "Quản Lý Người Dùng",
     icon: IconUserShield,
-    requiredRole: EUserRole.SUPER_ADMIN,
+    allowedRoles: [EUserRole.SUPER_ADMIN],
   },
 ];
 
@@ -83,8 +89,9 @@ export function SideBars() {
   // Filter menu items based on user role
   const filteredData = useMemo(() => {
     return data.filter((item) => {
-      if (!item.requiredRole) return true;
-      return session?.user?.role === item.requiredRole;
+      if (!item.allowedRoles) return true;
+      const userRole = session?.user?.role as EUserRole;
+      return item.allowedRoles.includes(userRole);
     });
   }, [session?.user?.role]);
 
