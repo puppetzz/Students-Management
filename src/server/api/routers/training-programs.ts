@@ -119,7 +119,7 @@ export const trainingProgramsRouter = createTRPCRouter({
     return programs;
   }),
 
-  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  create: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(createTrainingProgramSchema)
     .mutation(async ({ ctx, input }) => {
       const { name, description, subjectIds } = input;
@@ -168,7 +168,7 @@ export const trainingProgramsRouter = createTRPCRouter({
       return createdProgram;
     }),
 
-  update: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  update: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(updateTrainingProgramSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, name, description, subjectIds } = input;
@@ -365,7 +365,7 @@ export const trainingProgramsRouter = createTRPCRouter({
       return updatedProgram;
     }),
 
-  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  delete: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const [programExists, hasClasses] = await Promise.all([

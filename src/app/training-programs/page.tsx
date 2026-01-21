@@ -42,6 +42,7 @@ import { EUserRole } from "~/server/kysely/enums";
 const TrainingPrograms = () => {
   const { data: session } = useSession();
   const isUserRole = session?.user?.role === EUserRole.USER;
+  const isAdminRole = session?.user?.role === EUserRole.ADMIN;
 
   const [isViewModal, setIsViewModal] = useState(true);
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
@@ -349,7 +350,7 @@ const TrainingPrograms = () => {
             />
           </Link>
         </div>
-        {!isUserRole && (
+        {!isUserRole && !isAdminRole && (
           <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
             <Button onClick={handleOpenCreateModal} color="green">
               Thêm Chương Trình Đào Tạo
@@ -503,7 +504,7 @@ const TrainingPrograms = () => {
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            {isViewModal && !isUserRole && (
+            {isViewModal && !isUserRole && !isAdminRole && (
               <Button color="red" onClick={handleOpenConfirmModal}>
                 Xóa
               </Button>
@@ -511,7 +512,7 @@ const TrainingPrograms = () => {
             <div className="ml-auto flex gap-2">
               {isViewModal ? (
                 <>
-                  {!isUserRole && (
+                  {!isUserRole && !isAdminRole && (
                     <Button
                       type="button"
                       onClick={(e) => {

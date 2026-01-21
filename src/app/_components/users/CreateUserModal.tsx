@@ -82,7 +82,7 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
   };
 
   const roleOptions = [
-    { value: EUserRole.USER, label: "Người Dùng" },
+    { value: EUserRole.USER, label: "Học viên" },
     { value: EUserRole.ADMIN, label: "Quản Trị Viên" },
     { value: EUserRole.SUPER_ADMIN, label: "Quản Trị Viên Cấp Cao" },
   ];

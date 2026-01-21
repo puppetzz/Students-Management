@@ -31,6 +31,8 @@ import type { TStudentInfoResponse, TUpdateStudent } from "~/types/students";
 import { useUploadImageMutation } from "src/mutations/upload-file.mutation";
 import { ES3Folder } from "common/enums/s3.enum";
 import { EGender } from "@prisma/client";
+import { useSession } from "next-auth/react";
+import { EUserRole } from "~/server/kysely/enums";
 
 dayjs.locale("vi");
 
@@ -41,6 +43,9 @@ type Props = {
 };
 
 export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
+  const { data: session } = useSession();
+  const isAdminRole = session?.user?.role === EUserRole.ADMIN;
+
   const queryClient = useQueryClient();
   const [selectedTerm, setSelectedTerm] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -806,19 +811,21 @@ export const ViewAndEditModal = ({ opened, onClose, data }: Props) => {
                 style={{ borderTop: "2px solid #dee2e6" }}
               >
                 <Group justify="space-between" gap="sm">
-                  <Button
-                    variant="light"
-                    color="red"
-                    onClick={() => setDeleteConfirmOpened(true)}
-                    disabled={
-                      uploadImageMutation.isPending ||
-                      updateStudentMutation.isPending ||
-                      deleteStudentMutation.isPending ||
-                      isEditMode
-                    }
-                  >
-                    Xóa
-                  </Button>
+                  {!isAdminRole && (
+                    <Button
+                      variant="light"
+                      color="red"
+                      onClick={() => setDeleteConfirmOpened(true)}
+                      disabled={
+                        uploadImageMutation.isPending ||
+                        updateStudentMutation.isPending ||
+                        deleteStudentMutation.isPending ||
+                        isEditMode
+                      }
+                    >
+                      Xóa
+                    </Button>
+                  )}
                   <Group gap="sm">
                     <Button
                       variant="subtle"

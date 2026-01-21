@@ -188,7 +188,7 @@ export const subjectRouter = createTRPCRouter({
       return subject ?? null;
     }),
 
-  create: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  create: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         code: z.string(),
@@ -215,7 +215,7 @@ export const subjectRouter = createTRPCRouter({
       });
     }),
 
-  update: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  update: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -252,7 +252,7 @@ export const subjectRouter = createTRPCRouter({
       });
     }),
 
-  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  delete: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),

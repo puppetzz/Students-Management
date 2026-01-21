@@ -115,7 +115,7 @@ export const termRouter = createTRPCRouter({
       });
     }),
 
-  delete: roleBasedProcedure([EUserRole.ADMIN, EUserRole.SUPER_ADMIN])
+  delete: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),

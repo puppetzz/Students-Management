@@ -29,8 +29,14 @@ import {
   updateClassesSchema,
 } from "common/schema/classes";
 import type { TClasses, TCreateClasses, TUpdateClasses } from "~/types/classes";
+import { useSession } from "next-auth/react";
+import { EUserRole } from "~/server/kysely/enums";
 
 const Classes = () => {
+  const { data: session } = useSession();
+  const isUserRole = session?.user?.role === EUserRole.USER;
+  const isAdminRole = session?.user?.role === EUserRole.ADMIN;
+
   const [isViewModal, setIsViewModal] = useState(true);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] =
@@ -297,11 +303,13 @@ const Classes = () => {
           </Link>
         </div>
 
-        <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
-          <Button onClick={handleOpenCreateModal} color="green">
-            Thêm Lớp
-          </Button>
-        </div>
+        {!isUserRole && !isAdminRole && (
+          <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
+            <Button onClick={handleOpenCreateModal} color="green">
+              Thêm Lớp
+            </Button>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <div>
@@ -378,22 +386,25 @@ const Classes = () => {
             styles={{ input: { cursor: isViewModal ? "default" : "text" } }}
           />
           <div className="mt-2 flex items-center justify-between">
-            {isViewModal && (
+            {isViewModal && !isUserRole && !isAdminRole && (
               <Button color="red" onClick={handleOpenConfirmModal}>
                 Xóa
               </Button>
             )}
             <div className="ml-auto flex gap-2">
               {isViewModal ? (
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsViewModal(false);
-                  }}
-                >
-                  Chỉnh Sửa
-                </Button>
+                !isUserRole &&
+                !isAdminRole && (
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsViewModal(false);
+                    }}
+                  >
+                    Chỉnh Sửa
+                  </Button>
+                )
               ) : (
                 <Button type="submit">Xác Nhận</Button>
               )}

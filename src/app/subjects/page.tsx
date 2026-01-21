@@ -45,6 +45,7 @@ import { EUserRole } from "~/server/kysely/enums";
 const Subjects = () => {
   const { data: session } = useSession();
   const isUserRole = session?.user?.role === EUserRole.USER;
+  const isAdminRole = session?.user?.role === EUserRole.ADMIN;
 
   const [isViewModal, setIsViewModal] = useState(true);
   const [selectedMaterials, setSelectedMaterials] = useState<
@@ -365,7 +366,7 @@ const Subjects = () => {
           </Link>
         </div>
 
-        {!isUserRole && (
+        {!isUserRole && !isAdminRole && (
           <div className="mb-2 rounded-sm border border-[#dee2e6] bg-white p-2">
             <Button onClick={handleOpenCreateModal} color="green">
               Thêm Môn Học
@@ -610,7 +611,7 @@ const Subjects = () => {
           </div>
 
           <div className="mt-2 flex items-center justify-between">
-            {isViewModal && !isUserRole && (
+            {isViewModal && !isUserRole && !isAdminRole && (
               <Button color="red" onClick={handleOpenConfirmModal}>
                 Xóa
               </Button>
@@ -618,7 +619,7 @@ const Subjects = () => {
             <div className="ml-auto flex gap-2">
               {isViewModal ? (
                 <>
-                  {!isUserRole && (
+                  {!isUserRole && !isAdminRole && (
                     <Button
                       type="button"
                       onClick={(e) => {
