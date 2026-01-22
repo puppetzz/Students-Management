@@ -165,6 +165,11 @@ export const studentRouter = createTRPCRouter({
         .leftJoin("classes", "students.class_id", "classes.id")
         .leftJoin("exam_results", "students.id", "exam_results.student_id")
         .leftJoin("subjects", "exam_results.subject_id", "subjects.id")
+        .leftJoin(
+          "student_profiles",
+          "students.id",
+          "student_profiles.student_id",
+        )
         .where("students.is_deleted", "=", false)
         .$if(!!classId, (qb) => qb.where("students.class_id", "=", classId!))
         .$if(!!search, (qb) =>
@@ -179,6 +184,7 @@ export const studentRouter = createTRPCRouter({
           "students.id as id",
           "students.first_name as firstName",
           "students.last_name as lastName",
+          "student_profiles.day_of_birth as dayOfBirth",
           "students.vneid as vneid",
           "students.avg_overall as avgOverall",
           "students.avg_scored_subjects as avgScoredSubjects",
@@ -204,7 +210,7 @@ export const studentRouter = createTRPCRouter({
         'updatedAt', exam_results.updated_at)
       )`.as("examResults"),
         ])
-        .groupBy("students.id")
+        .groupBy(["students.id", "student_profiles.id"])
         .$if(orderBy === EGradesOrderBy.NAME, (qb) =>
           qb.orderBy("students.first_name", orderDirection),
         )

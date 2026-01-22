@@ -84,6 +84,7 @@ export type TStudentGradesResponse = {
   id: number;
   firstName: string;
   lastName: string;
+  dayOfBirth: Date;
   vneid: string;
   avgOverall: number | null;
   avgScoredSubjects: number;

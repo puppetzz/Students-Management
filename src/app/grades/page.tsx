@@ -344,37 +344,38 @@ const Grades = () => {
           </Link>
         </div>
         <div className="my-2 rounded-sm border border-[#dee2e6] bg-white px-2 py-1">
-          <div className="flex justify-between gap-2 py-2">
-            {!isUserRole && (
-              <div className="flex gap-2">
-                <Button color="blue" onClick={openBatchUpdateModal}>
-                  Cập Nhật Điểm
-                </Button>
+          {!isUserRole && (
+            <>
+              <div className="flex items-center justify-between gap-3 py-2">
+                <div className="flex gap-2">
+                  <Button color="blue" onClick={openBatchUpdateModal}>
+                    Cập Nhật Điểm
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    color="green"
+                    variant="outline"
+                    onClick={openImportExcelModal}
+                  >
+                    Nhập Từ Excel
+                  </Button>
+                  <ExportGradeButton
+                    students={studentsQuery.data ?? []}
+                    subjects={subjectsQuery.data?.data ?? []}
+                    className={classData?.name}
+                    termName={termData?.name}
+                    isLoading={studentsQuery.isFetching}
+                    disabled={
+                      !studentsQuery.data || studentsQuery.data.length === 0
+                    }
+                  />
+                </div>
               </div>
-            )}
-            <div className="flex gap-2">
-              {!isUserRole && (
-                <Button
-                  color="green"
-                  variant="outline"
-                  onClick={openImportExcelModal}
-                >
-                  Nhập Từ Excel
-                </Button>
-              )}
-              <ExportGradeButton
-                students={studentsQuery.data ?? []}
-                subjects={subjectsQuery.data?.data ?? []}
-                className={classData?.name}
-                termName={termData?.name}
-                isLoading={studentsQuery.isFetching}
-                disabled={
-                  !studentsQuery.data || studentsQuery.data.length === 0
-                }
-              />
-            </div>
-          </div>
-          <div className="border-t border-[#dee2e6]"></div>
+              <div className="border-t border-[#dee2e6]"></div>
+            </>
+          )}
+
           <div className="flex justify-between py-1">
             <div className="flex gap-2">
               <Select
@@ -526,6 +527,9 @@ const Grades = () => {
                 ...selectedStudent,
                 className: classData?.name ?? "N/A",
                 termName: termData?.name ?? "N/A",
+                termSchoolYear: termData?.schoolYear
+                  ? Number(termData.schoolYear)
+                  : 0,
               }
             : null
         }

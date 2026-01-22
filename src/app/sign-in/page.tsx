@@ -26,6 +26,10 @@ export default function SignIn() {
     e.preventDefault();
     setIsLoading(true);
 
+    console.log("username:", username);
+    console.log("password:", password);
+    console.log("isLoading:", "aaaa");
+
     try {
       const result = await signIn("credentials", {
         username,

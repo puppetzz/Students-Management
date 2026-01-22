@@ -7,6 +7,7 @@ import {
   Paper,
   Select,
 } from "@mantine/core";
+import { IconFileTypePdf } from "@tabler/icons-react";
 import { EConduct } from "@prisma/client";
 import { CONDUCT_LANGUAGE_MAPPING } from "common/constants/students";
 
@@ -28,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { useSession } from "next-auth/react";
 import { EUserRole } from "~/server/kysely/enums";
+import { exportStudentGradesToPDF } from "../../../../utils/exportToPDF";
 
 type Props = {
   opened: boolean;
@@ -36,6 +38,7 @@ type Props = {
     | (TStudentGradesResponse & {
         className: string;
         termName: string;
+        termSchoolYear: number;
       })
     | null;
   classSubjects?: Pick<TSubject, "id" | "name" | "code">[];
@@ -50,6 +53,7 @@ export const ViewAndEditGrades = ({
   const { data: session } = useSession();
   const isUserRole = session?.user?.role === EUserRole.USER;
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   const updateGradesMutation = api.student.updateGrades.useMutation();
@@ -66,6 +70,32 @@ export const ViewAndEditGrades = ({
   const handleClose = () => {
     setIsEditMode(false);
     onClose();
+  };
+
+  const handleExportPDF = async () => {
+    if (!student || !classSubjects) {
+      toast.error("Không có dữ liệu để xuất");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      await exportStudentGradesToPDF({
+        student: {
+          ...student,
+          className: student.className,
+          termName: student.termName,
+          termSchoolYear: student.termSchoolYear,
+        },
+        subjects: classSubjects,
+      });
+      toast.success("Xuất file PDF thành công!");
+    } catch (error) {
+      console.error("Export PDF error:", error);
+      toast.error("Có lỗi xảy ra khi xuất file PDF");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -475,34 +505,48 @@ export const ViewAndEditGrades = ({
                 </div>
               </div>
               <div className="shrink-0 border-t p-4">
-                <div className="flex justify-end gap-2">
-                  {isEditMode ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditMode(false)}
-                        color="red"
-                      >
-                        Hủy
-                      </Button>
-                      <Button type="submit" color="green">
-                        Lưu thay đổi
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        color="red"
-                        onClick={handleClose}
-                      >
-                        Đóng
-                      </Button>
-                      {!isUserRole && (
-                        <Button onClick={handleClickEdit}>Chỉnh sửa</Button>
-                      )}
-                    </>
+                <div className="flex justify-between gap-2">
+                  {!isEditMode && (
+                    <Button
+                      color="orange"
+                      variant="outline"
+                      leftSection={<IconFileTypePdf size={16} />}
+                      onClick={handleExportPDF}
+                      loading={isExporting}
+                      disabled={isExporting}
+                    >
+                      {isExporting ? "Đang xuất..." : "Xuất PDF"}
+                    </Button>
                   )}
+                  <div className="ml-auto flex gap-2">
+                    {isEditMode ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsEditMode(false)}
+                          color="red"
+                        >
+                          Hủy
+                        </Button>
+                        <Button type="submit" color="green">
+                          Lưu thay đổi
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          color="red"
+                          onClick={handleClose}
+                        >
+                          Đóng
+                        </Button>
+                        {!isUserRole && (
+                          <Button onClick={handleClickEdit}>Chỉnh sửa</Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
