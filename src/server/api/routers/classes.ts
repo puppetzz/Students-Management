@@ -167,7 +167,7 @@ export const classesRouter = createTRPCRouter({
       return createdClass;
     }),
 
-  delete: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+  update: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
@@ -324,7 +324,7 @@ export const classesRouter = createTRPCRouter({
       };
     }),
 
-  update: roleBasedProcedure([EUserRole.SUPER_ADMIN])
+  delete: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(
       z.object({
         id: z.number(),
