@@ -119,6 +119,26 @@ export const trainingProgramsRouter = createTRPCRouter({
     return programs;
   }),
 
+  getByClass: publicProcedure
+    .input(z.object({ classId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const program = await ctx.db.trainingProgram.findFirst({
+        where: {
+          classes: { some: { id: input.classId } },
+          isDeleted: false,
+        },
+      });
+
+      if (!program) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Chương trình đào tạo không tồn tại",
+        });
+      }
+
+      return program;
+    }),
+
   create: roleBasedProcedure([EUserRole.SUPER_ADMIN])
     .input(createTrainingProgramSchema)
     .mutation(async ({ ctx, input }) => {

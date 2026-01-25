@@ -57,6 +57,14 @@ export const ViewAndEditGrades = ({
   const queryClient = useQueryClient();
 
   const updateGradesMutation = api.student.updateGrades.useMutation();
+  const trainingProgram = api.trainingPrograms.getByClass.useQuery(
+    {
+      classId: student?.classId ?? 0,
+    },
+    {
+      enabled: !!student?.classId,
+    },
+  );
 
   const { handleSubmit, watch, setValue, reset } = useForm({
     resolver: zodResolver(updateGradesSchema),
@@ -86,6 +94,7 @@ export const ViewAndEditGrades = ({
           className: student.className,
           termName: student.termName,
           termSchoolYear: student.termSchoolYear,
+          trainingProgramName: trainingProgram.data?.name ?? "",
         },
         subjects: classSubjects,
       });

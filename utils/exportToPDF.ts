@@ -28,6 +28,7 @@ export interface StudentPDFExportData {
   className: string;
   termName: string;
   termSchoolYear: number;
+  trainingProgramName: string;
 }
 
 export interface SubjectInfo {
@@ -86,8 +87,6 @@ const generateGradesHTML = (
   // Generate table rows - treat header and summaries as regular elements
   const generateTableRows = () => {
     let rows = "";
-    let subjectCounter = 0;
-
     const maxRows = Math.max(leftElements.length, rightElements.length);
 
     for (let i = 0; i < maxRows; i++) {
@@ -122,7 +121,6 @@ const generateGradesHTML = (
             <td>${(leftElement as SubjectInfo).name}</td>
             <td class="center">${leftScore?.coefficient ?? "-"}</td>
             <td class="center">${leftScore?.scored?.toFixed(1) ?? "-"}</td>`;
-        subjectCounter++;
       } else {
         rows += `
             <td class="center" colspan="4"></td>`;
@@ -156,7 +154,6 @@ const generateGradesHTML = (
             <td>${(rightElement as SubjectInfo).name}</td>
             <td class="center">${rightScore?.coefficient ?? "-"}</td>
             <td class="center">${rightScore?.scored?.toFixed(1) ?? "-"}</td>`;
-        subjectCounter++;
       } else {
         rows += `
             <td class="center" colspan="4"></td>`;
@@ -431,7 +428,8 @@ const generateGradesHTML = (
           <span class="bold">${student.firstName} ${student.lastName}</span>
         </p>
         <p>Ngày sinh: ${student.dayOfBirth ? new Date(student.dayOfBirth).toLocaleDateString("vi-VN") : "N/A"}</p>
-        <p>Chuyên ngành đào tạo: SQDB Bộ binh từ Sinh viên tốt nghiệp đại học</p>
+        <p>Chuyên ngành đào tạo: GIÁO DỤC QUỐC PHÒNG VÀ AN NINH</p>
+        <p>Chương trinh đào tạo: ${student.trainingProgramName}</p>
         <p>Khóa ${student.termName} Năm ${student.termSchoolYear}</p>
       </div>
 
@@ -464,7 +462,7 @@ const generateGradesHTML = (
           <p>TL. HIỆU TRƯỞNG</p>
           <p>TRƯỞNG PHÒNG ĐÀO TẠO</p>
           <p class="signed">(Đã ký)</p>
-          <p class="signature-name">Đại tá Nguyễn Giac</p>
+          <p class="signature-name">Đại tá Nguyễn Giao</p>
         </div>
       </div>
     </div>
