@@ -362,6 +362,11 @@ const generateGradesHTML = (
       margin: 1rem 0;
     }
 
+    .student-name-info {
+      display: flex;
+      gap: 2rem;
+    }
+
     @page {
       size: A4;
       margin: 15mm 20mm;
@@ -423,14 +428,16 @@ const generateGradesHTML = (
 
       <!-- Student Information -->
       <div class="student-info">
-        <p>
-          <span>Họ và tên: </span>
-          <span class="bold">${student.firstName} ${student.lastName}</span>
-        </p>
-        <p>Ngày sinh: ${student.dayOfBirth ? new Date(student.dayOfBirth).toLocaleDateString("vi-VN") : "N/A"}</p>
-        <p>Chuyên ngành đào tạo: GIÁO DỤC QUỐC PHÒNG VÀ AN NINH</p>
-        <p>Chương trinh đào tạo: ${student.trainingProgramName}</p>
-        <p>Khóa ${student.termName} Năm ${student.termSchoolYear}</p>
+        <div class="student-name-info">
+          <p>
+            <span>Họ và tên: </span>
+            <span class="bold">${student.firstName} ${student.lastName}</span>
+          </p>
+          <p>Ngày sinh: ${student.dayOfBirth ? new Date(student.dayOfBirth).toLocaleDateString("vi-VN") : "N/A"}</p>
+        </div>
+        <p>Đơn vị ${student.className} khóa ${student.termName} Năm ${student.termSchoolYear}</p>
+        <p>Chuyên ngành: GIÁO DỤC QUỐC PHÒNG VÀ AN NINH</p>
+        <p>Chương trình đào tạo: ${student.trainingProgramName}</p>
       </div>
 
       <!--  <th class="center">TT</th>
