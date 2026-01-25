@@ -140,7 +140,7 @@ export const subjectRouter = createTRPCRouter({
         .select(sql<TSubjectMaterial[]>`material`.as("material"))
         .offset(skip)
         .limit(take)
-        .orderBy("name", "asc")
+        .orderBy("code", "asc")
         .compile();
 
       const countSubjectQueryCompiled = subjectQuery
