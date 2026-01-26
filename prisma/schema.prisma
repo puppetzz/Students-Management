@@ -83,7 +83,7 @@ model StudentProfiles {
     createdAt                   DateTime  @default(now()) @map("created_at")
     updatedAt                   DateTime  @default(now()) @map("updated_at")
 
-    student Students @relation(fields: [id], references: [id])
+    student Students @relation(fields: [studentId], references: [id])
 
     @@index([studentId])
     @@map("student_profiles")
