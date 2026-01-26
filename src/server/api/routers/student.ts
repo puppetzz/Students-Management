@@ -567,12 +567,16 @@ export const studentRouter = createTRPCRouter({
               scoreCoefficient: true,
             },
           }),
-          ctx.db.$queryRawUnsafe<{
-            count: bigint;
-          }>(
-            countSubjectsInClassQueryCompiled.sql,
-            ...countSubjectsInClassQueryCompiled.parameters,
-          ),
+          ctx.db
+            .$queryRawUnsafe<
+              {
+                count: bigint;
+              }[]
+            >(
+              countSubjectsInClassQueryCompiled.sql,
+              ...countSubjectsInClassQueryCompiled.parameters,
+            )
+            .then((res) => Number(res[0]?.count) ?? 0),
         ]);
 
       const subjectCoefficientMap = new Map(
@@ -627,11 +631,12 @@ export const studentRouter = createTRPCRouter({
         scoredSubjectIds.add(result.subjectId);
       });
 
-      const numberOfSubjectsInClass = Number(countSubjectsInClass?.count) ?? 0;
+      const numberOfSubjectsInClass = countSubjectsInClass;
+      console.log("numberOfSubjectsInClass", numberOfSubjectsInClass);
 
       let avgOverall: number | undefined = undefined;
 
-      if (scoredSubjectIds.size == numberOfSubjectsInClass) {
+      if (scoredSubjectIds.size >= numberOfSubjectsInClass) {
         avgOverall = currentAvg;
       }
 
